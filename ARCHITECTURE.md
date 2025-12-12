@@ -9,6 +9,7 @@ graph TD
     classDef db fill:#F3E5F5,stroke:#7B1FA2,stroke-width:2px,color:black;
     classDef external fill:#FFEBEE,stroke:#C62828,stroke-width:2px,color:black;
     classDef monitor fill:#E0F2F1,stroke:#00695C,stroke-width:2px,color:black;
+    classDef agent fill:#FFF9C4,stroke:#FBC02D,stroke-width:2px,color:black,stroke-dasharray: 5 5;
 
     %% User Interaction
     User((User)) -->|HTTP/HTTPS| Frontend[Frontend (React.js)]:::frontend
@@ -38,6 +39,23 @@ graph TD
         ToT_Orchestrator(ToT Orchestrator):::backend
         API_Gateway --- LLM_Router
         API_Gateway --- ToT_Orchestrator
+    end
+
+    %% Logical Agent Layer (Mapped to Services)
+    subgraph Logical_Agents [Logical Agent Layer]
+        Coordinator[⚙️ Coordinator]:::agent
+        ResearchAnalyst[🔬 Research Analyst]:::agent
+        DocProcessor[📄 Document Processor]:::agent
+        ContentCreator[📝 Content Creator]:::agent
+        LearningAssistant[🎓 Learning Assistant]:::agent
+
+        %% Mappings
+        Coordinator -.->|Implemented via| LLM_Router
+        Coordinator -.->|Implemented via| ToT_Orchestrator
+        ResearchAnalyst -.->|Implemented via| RAG_Service
+        DocProcessor -.->|Implemented via| RAG_Service
+        ContentCreator -.->|Implemented via| RAG_Service
+        LearningAssistant -.->|Implemented via| API_Gateway
     end
 
     %% Data Layer

@@ -55,3 +55,20 @@ The project uses Docker Compose for local development but lacks a defined CI/CD 
     *   Generate API documentation using **Swagger/OpenAPI** for both the Node.js and Python APIs. This helps frontend developers and external integrators.
 *   **Developer Guide**:
     *   Expand `README.md` or create `CONTRIBUTING.md` with clear instructions on how to run tests (once added) and contribution guidelines.
+
+## 7. Proposed Functional Features
+To further evolve the platform, the following features are recommended:
+
+*   **Collaborative Learning (Real-time Multiplayer)**:
+    *   Implement real-time shared sessions using **Socket.io** (already present in dependencies) to allow students to collaborate on whiteboards, document editing, or code execution in the same session.
+*   **Gamification System**:
+    *   Introduce a rewards system with **XP, Badges, and Streaks** to motivate daily learning.
+    *   Create **Leaderboards** for quiz performance or consistent study habits.
+*   **LMS Integration**:
+    *   Implement **LTI (Learning Tools Interoperability)** standards to allow seamless integration with major Learning Management Systems like Canvas, Moodle, and Blackboard.
+    *   Allow professors to sync assignments and grades directly.
+*   **Offline Mode / Progressive Web App (PWA)**:
+    *   Enhance the frontend to be a PWA, allowing students to access cached study materials and previous chats even without an internet connection.
+    *   Implement local sync when connectivity is restored.
+*   **Voice-First Interaction (Real-time)**:
+    *   Upgrade the current TTS/STT flow to a full duplex **real-time voice conversation mode** (similar to advanced voice assistants) for language learning practice or oral exams.
