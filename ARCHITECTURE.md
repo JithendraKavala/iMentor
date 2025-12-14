@@ -6,7 +6,7 @@ This document describes the high-level architecture of the iMentor AI system.
 
 iMentor AI is a full-stack educational platform that leverages a microservices-like architecture (within a monorepo) to provide intelligent tutoring, research assistance, and content generation. It combines a React frontend, a Node.js backend, and specialized Python services for advanced AI capabilities.
 
-## Architecture Diagram (C4 Container Model)
+## System Context (C4 Container)
 
 ```mermaid
 C4Container
@@ -35,6 +35,42 @@ C4Container
     Rel(ml_service, ollama, "Routes queries to", "HTTP")
 ```
 
+## Agent Ecosystem (C4 Component)
+
+This diagram details the "AI Dream Team" agents and their placement within the system components.
+
+```mermaid
+C4Component
+    title Component Diagram - Agent Ecosystem
+
+    Container_Boundary(backend_api, "Backend API (Node.js)") {
+        Component(doc_processor, "Document Processor", "Service", "The Information Alchemist: Extracts text, chunks documents, and manages vector embeddings for RAG.")
+        Component(mcp_handler, "MCP WebSocket Handler", "Service", "Manages real-time communication between Frontend and Python Agents.")
+    }
+
+    Container_Boundary(mcp_controller, "MCP Agent Controller (Python)") {
+        Component(orchestrator, "Workflow Coordinator", "AgentOrchestrator", "The Master Orchestrator: Decomposes complex tasks and routes them to specialized agents.")
+
+        Component(research_agent, "Research Analyst", "ResearchAssistantAgent", "The Knowledge Hunter: Performs deep web search, verification, and synthesis.")
+        Component(content_agent, "Content Creator", "CreativeAgent", "The Digital Artisan: Generates reports, presentations, and creative content.")
+        Component(learning_agent, "Learning Assistant", "AcademicAssistantAgent", "The Personalized Tutor: Provides tutoring, study plans, and academic tracking.")
+
+        Component(project_agent, "Project Manager", "ProjectManagementAgent", "Manages GitHub repos, collaboration, and deadlines.")
+        Component(career_agent, "Career Advisor", "CareerDevelopmentAgent", "Assists with job search, applications, and networking.")
+        Component(engineering_agent, "Engineering Tools", "EngineeringToolsAgent", "Specialized in CAD, simulation analysis, and lab reports.")
+    }
+
+    Rel(mcp_handler, orchestrator, "Sends requests to", "StdIO/Pipe")
+    Rel(orchestrator, research_agent, "Delegates to")
+    Rel(orchestrator, content_agent, "Delegates to")
+    Rel(orchestrator, learning_agent, "Delegates to")
+    Rel(orchestrator, project_agent, "Delegates to")
+    Rel(orchestrator, career_agent, "Delegates to")
+    Rel(orchestrator, engineering_agent, "Delegates to")
+
+    Rel(backend_api, doc_processor, "Uses for file processing")
+```
+
 ## Component Details
 
 ### 1. Frontend Application
@@ -45,37 +81,33 @@ C4Container
 ### 2. Backend API
 - **Tech Stack**: Node.js, Express.js, Mongoose.
 - **Role**: The central orchestrator.
+  - **Document Processor**: A specialized service ("The Information Alchemist") that handles file uploads, content extraction (PDF, DOCX), and vector embeddings.
   - Manages authentication (JWT).
-  - Handles file uploads and processing.
   - Routes requests to appropriate AI services.
-  - Manages the WebSocket connection for real-time agent interaction.
 - **Key Modules**:
   - `server.js`: Entry point.
+  - `services/documentProcessor.js`: Handles document parsing and chunking.
   - `mcp_system/`: Handles the "Model Context Protocol" agents via WebSockets and child processes.
-  - `routes/`: API route definitions.
 
-### 3. Database
-- **Tech Stack**: MongoDB.
-- **Role**: Persistent storage for:
-  - User profiles and settings.
-  - Chat sessions and history.
-  - Uploaded file metadata.
-  - Vector embeddings (for RAG).
+### 3. MCP Agent Controller
+- **Tech Stack**: Python.
+- **Role**: Implements the logic for the "Agentic" system. Runs as a child process spawned by the Node.js backend.
+- **Agents**:
+  - **Workflow Coordinator**: (`AgentOrchestrator`) The "Master Orchestrator" that analyzes queries and routes them to the correct agent or creates a multi-step workflow.
+  - **Research Analyst**: (`ResearchAssistantAgent`) "The Knowledge Hunter". Specialized in web search (DuckDuckGo), fact-checking, and citation management.
+  - **Content Creator**: (`CreativeAgent`) "The Digital Artisan". Specialized in writing, storytelling, and content generation.
+  - **Learning Assistant**: (`AcademicAssistantAgent`) "The Personalized Tutor". Manages study schedules, grades, and assignments.
+  - **Project Manager**: (`ProjectManagementAgent`) Handles GitHub integration and project tracking.
+  - **Career Advisor**: (`CareerDevelopmentAgent`) Helps with job applications and interviews.
+  - **Engineering Tools**: (`EngineeringToolsAgent`) Manages CAD files and technical reports.
 
 ### 4. ML Inference Service
 - **Tech Stack**: Python, FastAPI.
-- **Role**: Provides specialized machine learning capabilities that are better handled in Python.
+- **Role**: Provides specialized machine learning capabilities.
   - **Query Classification**: Determines the intent of user queries.
-  - **Model Routing**: Decides which LLM (Gemini vs. Ollama models) to use based on complexity and cost.
+  - **Model Routing**: Decides which LLM to use.
   - **Embeddings**: Generates vector embeddings for documents.
 
-### 5. MCP Agent Controller
-- **Tech Stack**: Python.
-- **Role**: Implements the logic for the "Agentic" system.
-  - Runs as a child process spawned by the Node.js backend.
-  - Executes multi-step workflows (e.g., "Research this topic, then write a report").
-  - Coordinates specialized agents (Research Analyst, Content Creator, etc.).
-
-### 6. External & Local AI Services
-- **Google Gemini API**: Used for high-intelligence tasks, complex reasoning, and multimodal understanding.
-- **Ollama**: Hosted locally (or in a separate container) to run open-source models (Llama 3, Mistral, etc.) for privacy, cost-saving, or offline capabilities.
+### 5. Database
+- **Tech Stack**: MongoDB.
+- **Role**: Persistent storage for user data, chat history, and vector embeddings.
