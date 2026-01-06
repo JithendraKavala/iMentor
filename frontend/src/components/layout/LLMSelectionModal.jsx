@@ -11,14 +11,15 @@ import { motion } from 'framer-motion';
 
 function LLMSelectionModal({ isOpen, onClose }) {
     const { selectedLLM: currentLLM, switchLLM: setGlobalLLMPreference } = useAppState();
-    
+
     // State for the provider selection
     const [locallySelectedLLM, setLocallySelectedLLM] = useState(currentLLM);
-    
+
     // Separate state for each input field
     const [geminiApiKeyInput, setGeminiApiKeyInput] = useState('');
     const [ollamaUrlInput, setOllamaUrlInput] = useState('');
-    
+    const [ollamaModelInput, setOllamaModelInput] = useState('');
+
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
@@ -26,16 +27,17 @@ function LLMSelectionModal({ isOpen, onClose }) {
         // Reset state every time the modal opens
         if (isOpen) {
             setLocallySelectedLLM(currentLLM);
-            setGeminiApiKeyInput(''); 
-            setOllamaUrlInput(''); 
+            setGeminiApiKeyInput('');
+            setOllamaUrlInput('');
+            setOllamaModelInput('');
             setError('');
         }
     }, [isOpen, currentLLM]);
 
     const handleSavePreference = async () => {
-        setLoading(true); 
+        setLoading(true);
         setError('');
-        
+
         try {
             // Start with the provider selection
             const configData = { llmProvider: locallySelectedLLM };
@@ -47,10 +49,13 @@ function LLMSelectionModal({ isOpen, onClose }) {
             if (ollamaUrlInput.trim()) {
                 configData.ollamaUrl = ollamaUrlInput.trim();
             }
-            
+            if (ollamaModelInput.trim()) {
+                configData.ollamaModel = ollamaModelInput.trim();
+            }
+
             await api.updateUserLLMConfig(configData);
             setGlobalLLMPreference(locallySelectedLLM);
-            
+
             toast.success(`LLM preference updated to ${locallySelectedLLM.toUpperCase()}.`);
             onClose();
         } catch (err) {
@@ -61,32 +66,32 @@ function LLMSelectionModal({ isOpen, onClose }) {
             setLoading(false);
         }
     };
-    
+
     const inputWrapperClass = "relative";
     const inputIconClass = "absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-text-muted-light dark:text-text-muted-dark";
     const inputFieldStyledClass = "input-field pl-10 py-2 text-sm w-full";
 
     return (
-         <Modal isOpen={isOpen} onClose={onClose} title="Switch LLM Provider & Credentials" size="lg"
+        <Modal isOpen={isOpen} onClose={onClose} title="Switch LLM Provider & Credentials" size="lg"
             footerContent={
                 <>
                     <Button onClick={onClose} variant="secondary" size="sm" className="text-xs">Cancel</Button>
                     <Button onClick={handleSavePreference} isLoading={loading} size="sm" className="text-xs">
-                        <Save size={14} className="mr-1.5"/> Save Preference
+                        <Save size={14} className="mr-1.5" /> Save Preference
                     </Button>
                 </>
             }
         >
-            <div className="space-y-5"> 
+            <div className="space-y-5">
                 <p className="text-sm text-text-muted-light dark:text-text-muted-dark">
-                    Select your preferred LLM. You can also update your credentials here. <br/><strong>Leave a field blank to keep your existing setting.</strong>
+                    Select your preferred LLM. You can also update your credentials here. <br /><strong>Leave a field blank to keep your existing setting.</strong>
                 </p>
-                <LLMSelection 
-                    selectedLLM={locallySelectedLLM} 
+                <LLMSelection
+                    selectedLLM={locallySelectedLLM}
                     onLlmChange={setLocallySelectedLLM}
                     disabled={loading}
                 />
-                
+
                 <motion.div key="gemini-config-modal" className="mt-4 space-y-1">
                     <label htmlFor="modalGeminiApiKey" className="block text-xs font-medium text-text-muted-light dark:text-text-muted-dark">
                         Update Gemini API Key (Optional)
@@ -96,14 +101,24 @@ function LLMSelectionModal({ isOpen, onClose }) {
                         <input type="password" id="modalGeminiApiKey" className={inputFieldStyledClass} placeholder="Leave blank to keep existing key" value={geminiApiKeyInput} onChange={(e) => setGeminiApiKeyInput(e.target.value)} disabled={loading} />
                     </div>
                 </motion.div>
-                
+
                 <motion.div key="ollama-config-modal" className="mt-4 space-y-1">
                     <label htmlFor="modalOllamaUrl" className="block text-xs font-medium text-text-muted-light dark:text-text-muted-dark">
                         Update Ollama URL (Optional)
                     </label>
-                     <div className={inputWrapperClass}>
+                    <div className={inputWrapperClass}>
                         <HardDrive className={inputIconClass} />
                         <input type="text" id="modalOllamaUrl" className={inputFieldStyledClass} placeholder="Leave blank to keep existing URL" value={ollamaUrlInput} onChange={(e) => setOllamaUrlInput(e.target.value)} disabled={loading} />
+                    </div>
+                </motion.div>
+
+                <motion.div key="ollama-model-modal" className="mt-4 space-y-1">
+                    <label htmlFor="modalOllamaModel" className="block text-xs font-medium text-text-muted-light dark:text-text-muted-dark">
+                        Update Ollama Model Name (Optional)
+                    </label>
+                    <div className={inputWrapperClass}>
+                        <HardDrive className={inputIconClass} />
+                        <input type="text" id="modalOllamaModel" className={inputFieldStyledClass} placeholder="e.g. llama3, mistral (Leave blank to keep existing)" value={ollamaModelInput} onChange={(e) => setOllamaModelInput(e.target.value)} disabled={loading} />
                     </div>
                 </motion.div>
 

@@ -32,7 +32,7 @@ const userRoutes = require("./routes/user");
 const chatRoutes = require("./routes/chat");
 const uploadRoutes = require("./routes/upload");
 const analysisRoutes = require("./routes/analysis");
-const adminMasterRouter = require('./routes/index'); 
+const adminMasterRouter = require('./routes/index');
 const subjectsRoutes = require("./routes/subjects");
 const generationRoutes = require("./routes/generationRoutes");
 const exportRoutes = require("./routes/export");
@@ -69,18 +69,19 @@ app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 app.use((req, res, next) => {
-    const end = httpRequestDurationMicroseconds.startTimer();
-    res.on('finish', () => {
-        end({ route: req.route?.path || req.path, code: res.statusCode, method: req.method });
-    });
-    next();
+  const end = httpRequestDurationMicroseconds.startTimer();
+  res.on('finish', () => {
+    end({ route: req.route?.path || req.path, code: res.statusCode, method: req.method });
+  });
+  next();
 });
 
 // --- API Route Mounting ---
 app.get("/", (req, res) => res.send("AI Tutor Backend API is running..."));
+app.use('/generated_docs', express.static(path.join(__dirname, 'generated_docs')));
 app.get('/metrics', async (req, res) => {
-    res.set('Content-Type', register.contentType);
-    res.end(await register.metrics());
+  res.set('Content-Type', register.contentType);
+  res.end(await register.metrics());
 });
 app.use("/api/network", networkRoutes);
 app.use("/api/auth", authRoutes);
@@ -118,11 +119,11 @@ app.use('/api/feedback', feedbackRoutes);
 // --- Centralized Error Handling ---
 app.use((err, req, res, next) => {
   logger.error("Unhandled Error:", {
-      message: err.message,
-      stack: err.stack,
-      status: err.status,
-      url: req.originalUrl,
-      method: req.method
+    message: err.message,
+    stack: err.stack,
+    status: err.status,
+    url: req.originalUrl,
+    method: req.method
   });
 
   const statusCode = err.status || 500;

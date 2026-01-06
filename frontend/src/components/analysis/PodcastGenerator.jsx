@@ -25,7 +25,7 @@ function PodcastGenerator({ selectedDocumentFilename }) {
                 sourceDocumentName: selectedDocumentFilename,
                 podcastOptions: { studyPurpose: podcastPurpose, sessionLength: podcastLength }
             });
-            
+
             toast.success("High-Quality Podcast is ready for download!", { id: toastId, duration: 5000 });
 
             const url = window.URL.createObjectURL(audioBlob);
@@ -88,7 +88,7 @@ function PodcastGenerator({ selectedDocumentFilename }) {
                             disabled={!selectedDocumentFilename || isLoading}
                             title={!selectedDocumentFilename ? "Select a document first" : "Generate Podcast"}
                         >
-                           {isLoading ? 'Generating Audio...' : 'Generate High-Quality Podcast'}
+                            {isLoading ? 'Generating Audio...' : 'Generate High-Quality Podcast'}
                         </Button>
                     </motion.div>
                 )}

@@ -14,42 +14,42 @@ const llmSeedData = [
 
   // 1. Gemini: The New Default - Fast & Modern
   {
-    modelId: "gemini-2.5-flash-latest",
+    modelId: "gemini-1.5-flash-002", // Updated to stable version
     provider: "gemini",
-    displayName: "Gemini 2.5 Flash (Default)",
+    displayName: "Gemini 1.5 Flash (Default)",
     description: "Next-gen performance for general chat, creative tasks, and summarization.",
-    isDefault: false, 
+    isDefault: true,
     strengths: ["chat", "creative", "summarization"],
     subjectFocus: null
   },
   // 2. Gemini: The Ultimate Powerhouse for Code & Technical
   {
-    modelId: "gemini-2.5-pro-latest",
+    modelId: "gemini-1.5-pro-002", // Updated to stable version
     provider: "gemini",
-    displayName: "Gemini 2.5 Pro (All rounder - for all tasks)",
+    displayName: "Gemini 1.5 Pro (All rounder - for all tasks)",
     description: "The most powerful model for complex coding, mathematics, and demanding technical queries.",
-    isDefault: true,
-    strengths: ["code", "technical"], // Explicitly assigned to the most demanding tasks
+    isDefault: false,
+    strengths: ["code", "technical"],
     subjectFocus: null
   },
   // 3. Gemini: Legacy Powerhouse for Large Context & Deep Reasoning
   {
-    modelId: "gemini-1.5-pro-latest",
+    modelId: "gemini-1.5-pro",
     provider: "gemini",
-    displayName: "Gemini 1.5 Pro (Large Context)",
+    displayName: "Gemini 1.5 Pro (Legacy)",
     description: "A powerful model with a massive context window, ideal for deep reasoning over large documents.",
     isDefault: false,
-    strengths: ["reasoning", "large_context"], // Assigned to its unique strengths
+    strengths: ["reasoning", "large_context"],
     subjectFocus: null
   },
   // 4. Gemini: Legacy Fast Model (Fallback/Legacy Option)
   {
-    modelId: "gemini-1.5-flash-latest",
+    modelId: "gemini-1.5-flash",
     provider: "gemini",
     displayName: "Gemini 1.5 Flash (Legacy)",
     description: "A solid and fast model for general-purpose tasks.",
-    isDefault: false, 
-    strengths: [], // No specific strengths to ensure it's not auto-selected over 2.5 Flash
+    isDefault: false,
+    strengths: [],
     subjectFocus: null
   },
 
@@ -88,7 +88,7 @@ const llmSeedData = [
     subjectFocus: null
   },
   // 8. Ollama: Fast & Efficient Model for Summarization
-   {
+  {
     modelId: "phi3:mini-instruct",
     provider: "ollama",
     displayName: "Ollama Phi-3 Mini",
@@ -131,11 +131,11 @@ const seedLLMConfigurations = async () => {
     const modelsToUpdate = llmSeedData.filter(seed => existingModelIds.has(seed.modelId));
 
     if (modelsToUpdate.length > 0) {
-        console.log(`Found ${modelsToUpdate.length} existing LLM configurations to update.`);
-        for (const modelData of modelsToUpdate) {
-            await LLMConfiguration.updateOne({ modelId: modelData.modelId }, { $set: modelData });
-            console.log(`- Updated ${modelData.displayName}`);
-        }
+      console.log(`Found ${modelsToUpdate.length} existing LLM configurations to update.`);
+      for (const modelData of modelsToUpdate) {
+        await LLMConfiguration.updateOne({ modelId: modelData.modelId }, { $set: modelData });
+        console.log(`- Updated ${modelData.displayName}`);
+      }
     }
 
     if (modelsToInsert.length === 0) {

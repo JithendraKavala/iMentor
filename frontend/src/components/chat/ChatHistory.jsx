@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowDownCircle } from 'lucide-react';
 
 function ChatHistory({ messages, onCueClick }) {
-    
+
     const scrollRef = useRef(null);
     const [showScrollButton, setShowScrollButton] = useState(false);
 
@@ -32,20 +32,20 @@ function ChatHistory({ messages, onCueClick }) {
     useEffect(() => {
         scrollToBottom('auto');
     }, [messages]);
-    
+
 
     return (
         <div className="relative flex-1">
-            <div ref={scrollRef} onScroll={handleScroll} className="absolute inset-0 overflow-y-auto custom-scrollbar p-4 space-y-4">
+            <div ref={scrollRef} onScroll={handleScroll} className="absolute inset-0 overflow-y-auto custom-scrollbar p-4 pb-48 space-y-4">
                 <AnimatePresence initial={false}>
                     {messages.map((msg) => (
                         <motion.div
-                        key={msg.id}
-                        layout
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10, transition: { duration: 0.15 } }}
-                        transition={{ duration: 0.3, ease: "easeOut" }}
+                            key={msg.id}
+                            layout
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10, transition: { duration: 0.15 } }}
+                            transition={{ duration: 0.3, ease: "easeOut" }}
                         >
                             <MessageBubble
                                 id={msg.id}
@@ -59,7 +59,7 @@ function ChatHistory({ messages, onCueClick }) {
                                 criticalThinkingCues={msg.criticalThinkingCues}
                                 onCueClick={onCueClick}
                                 messageId={msg.id}
-                                logId={msg.logId} 
+                                logId={msg.logId}
                             />
                         </motion.div>
                     ))}

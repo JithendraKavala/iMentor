@@ -15,7 +15,8 @@ function RightCollapsedNav({ isChatProcessing }) {
     const { setIsRightPanelOpen } = useAppState();
 
     const navItems = [
-        { id: 'faq', label: 'FAQ Generator', iconName: 'HelpCircle', action: () => { setIsRightPanelOpen(true); /* TODO: set analysis type contextually */ } },
+        { id: 'quiz', label: 'Quiz Generator', iconName: 'HelpCircle', action: () => { setIsRightPanelOpen(true); } },
+        { id: 'faq', label: 'FAQ Generator', iconName: 'Tags', action: () => { setIsRightPanelOpen(true); } },
         { id: 'topics', label: 'Key Topics Extractor', iconName: 'Tags', action: () => { setIsRightPanelOpen(true); } },
         { id: 'mindmap', label: 'Mind Map Creator', iconName: 'GitFork', action: () => { setIsRightPanelOpen(true); } },
     ];
@@ -31,20 +32,20 @@ function RightCollapsedNav({ isChatProcessing }) {
                        ${isChatProcessing ? 'processing-overlay' : ''}`}
         >
             {/* Open Panel Button AT THE TOP */}
-            <IconButton 
-                icon={ChevronLeft} 
-                onClick={() => setIsRightPanelOpen(true)} 
+            <IconButton
+                icon={ChevronLeft}
+                onClick={() => setIsRightPanelOpen(true)}
                 title="Open Analyzer Panel"
                 ariaLabel="Open Analyzer Panel"
-                variant="ghost" 
+                variant="ghost"
                 size="lg"
                 className="mb-2 text-text-muted-light dark:text-text-muted-dark hover:text-primary dark:hover:text-primary-light"
                 disabled={isChatProcessing}
             />
             {navItems.map(item => {
-                 const Icon = iconMap[item.iconName] || HelpCircle;
+                const Icon = iconMap[item.iconName] || HelpCircle;
                 return (
-                    <IconButton 
+                    <IconButton
                         key={item.id}
                         icon={Icon}
                         onClick={item.action}

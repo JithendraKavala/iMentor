@@ -23,10 +23,10 @@ async function generateCues(aiAnswerText, llmConfig) {
     const promptForLlm = CRITICAL_THINKING_CUE_TEMPLATE.replace('{aiAnswer}', aiAnswerText.substring(0, 2000));
 
     const llmOptions = {
-        model: llmProvider === 'ollama' ? CUE_OLLAMA_MODEL : CUE_GEMINI_MODEL,
+        model: llmProvider === 'ollama' ? (llmConfig.ollamaModel || CUE_OLLAMA_MODEL) : (llmConfig.geminiModel || CUE_GEMINI_MODEL),
         apiKey: apiKey,
         ollamaUrl: ollamaUrl,
-        temperature: 0.4 
+        temperature: 0.4
     };
 
     try {
@@ -47,13 +47,13 @@ async function generateCues(aiAnswerText, llmConfig) {
                 jsonString = responseText.substring(firstBrace, lastBrace + 1);
             }
         }
-        
+
         if (!jsonString) {
             console.warn("[CriticalThinkingService] LLM response did not contain a parsable JSON object.");
             return null;
         }
         // --- END OF FIX ---
-        
+
         const parsedResponse = JSON.parse(jsonString);
 
         if (parsedResponse.verificationPrompt || parsedResponse.alternativePrompt || parsedResponse.applicationPrompt) {

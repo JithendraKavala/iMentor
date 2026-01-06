@@ -12,13 +12,21 @@ import Footer from './Footer';
 // This keeps the modal state managed by the main App.jsx component.
 const LandingPage = ({ onLoginClick }) => {
     return (
-        <div className="bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark font-sans custom-scrollbar overflow-y-auto h-screen">
+        <div className="bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark font-sans custom-scrollbar overflow-y-auto h-screen scroll-smooth">
             <LandingNav onLoginClick={onLoginClick} />
             <main>
-                <HeroSection onLoginClick={onLoginClick} />
-                <FeaturesSection />
-                <HowItWorksSection />
-                <AudienceSection />
+                <section id="hero">
+                    <HeroSection onLoginClick={onLoginClick} />
+                </section>
+                <section id="features">
+                    <FeaturesSection />
+                </section>
+                <section id="how-it-works">
+                    <HowItWorksSection />
+                </section>
+                <section id="audience">
+                    <AudienceSection />
+                </section>
                 <CtaSection onLoginClick={onLoginClick} />
             </main>
             <Footer />

@@ -18,7 +18,7 @@ const RAG_STAGES = [
     { name: "Analyzing", duration: 3000, message: "Indexing content for optimal retrieval..." },
 ];
 // MODIFIED: Renamed 'onUploadSuccess' prop to 'onSourceAdded'
-function DocumentUpload({ onSourceAdded }) { 
+function DocumentUpload({ onSourceAdded }) {
     const [selectedFile, setSelectedFile] = useState(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const [progress, setProgress] = useState(0);
@@ -31,7 +31,7 @@ function DocumentUpload({ onSourceAdded }) {
 
     const fileInputRef = useRef(null);
     const processingTimeoutRef = useRef(null);
-    
+
     useEffect(() => {
         return () => {
             if (processingTimeoutRef.current) {
@@ -50,7 +50,7 @@ function DocumentUpload({ onSourceAdded }) {
     };
 
     const handleDrag = (e) => { e.preventDefault(); e.stopPropagation(); if (isProcessing) return; setDragActive(e.type === "dragenter" || e.type === "dragover"); };
-    const handleDrop = (e) => { e.preventDefault(); e.stopPropagation(); if (isProcessing) return; setDragActive(false); const file = e.dataTransfer.files && e.dataTransfer.files[0]; if (file) { setSelectedFile(file); setErrorMessage(''); }};
+    const handleDrop = (e) => { e.preventDefault(); e.stopPropagation(); if (isProcessing) return; setDragActive(false); const file = e.dataTransfer.files && e.dataTransfer.files[0]; if (file) { setSelectedFile(file); setErrorMessage(''); } };
 
     const resetState = () => {
         setSelectedFile(null);
@@ -61,14 +61,14 @@ function DocumentUpload({ onSourceAdded }) {
         setErrorMessage('');
         if (fileInputRef.current) fileInputRef.current.value = null;
     };
-    
+
     const runProgressSimulation = (stageIndex = 0) => {
         if (stageIndex >= RAG_STAGES.length) return;
 
         const stage = RAG_STAGES[stageIndex];
         setCurrentStage(stage.name);
         setStageMessage(stage.message);
-        
+
         const totalDuration = RAG_STAGES.reduce((acc, s) => acc + s.duration, 0);
         const elapsedDuration = RAG_STAGES.slice(0, stageIndex).reduce((acc, s) => acc + s.duration, 0);
         setProgress(Math.round((elapsedDuration / totalDuration) * 100));
@@ -89,13 +89,13 @@ function DocumentUpload({ onSourceAdded }) {
 
         const formData = new FormData();
         formData.append("file", selectedFile);
-        
+
         try {
             await api.uploadFile(formData);
             if (processingTimeoutRef.current) clearTimeout(processingTimeoutRef.current);
             setProgress(100);
             toast.success(`'${selectedFile.name}' accepted! Processing has begun.`, { duration: 4000 });
-            
+
             setTimeout(() => {
                 resetState();
                 if (onSourceAdded) onSourceAdded(); // Now correctly calls onSourceAdded
@@ -159,7 +159,7 @@ function DocumentUpload({ onSourceAdded }) {
             </div>
         );
     }
-    
+
     return (
         <div className="mb-4 space-y-4">
             {/* --- File Upload Section (Existing JSX, no changes needed) --- */}
@@ -167,23 +167,23 @@ function DocumentUpload({ onSourceAdded }) {
                 <label
                     htmlFor="file-upload-input"
                     onDragEnter={handleDrag} onDragLeave={handleDrag} onDragOver={handleDrag} onDrop={handleDrop}
-                    className={`flex flex-col items-center justify-center w-full h-28 px-4 transition-colors duration-200 ease-in-out bg-surface-light dark:bg-gray-800 border-2 border-dashed rounded-lg cursor-pointer border-border-light dark:border-border-dark hover:border-primary dark:hover:border-primary-light ${dragActive ? "border-primary dark:border-primary-light ring-2 ring-primary dark:ring-primary-light bg-primary/10 dark:bg-primary-dark/20" : ""}`}
+                    className={`flex flex-col items-center justify-center w-full h-28 px-4 transition-colors duration-200 ease-in-out bg-chat-surface-light dark:bg-chat-surface-dark border-2 border-dashed rounded-lg cursor-pointer border-slate-200 dark:border-white/10 hover:border-indigo-500 dark:hover:border-indigo-400 ${dragActive ? "border-indigo-500 dark:border-indigo-400 ring-2 ring-indigo-500/20 dark:ring-indigo-400/20 bg-indigo-50/50 dark:bg-indigo-900/10" : ""}`}
                 >
                     <div className="flex flex-col items-center justify-center text-center">
-                        <Paperclip size={28} className={`mb-1 transition-colors ${dragActive ? 'text-primary dark:text-primary-light' : 'text-text-muted-light dark:text-text-muted-dark'}`} />
-                        <p className="text-sm text-text-muted-light dark:text-text-muted-dark"><span className="font-semibold text-primary dark:text-primary-light">Upload a file</span> or drag & drop</p>
+                        <Paperclip size={28} className={`mb-1 transition-colors ${dragActive ? 'text-indigo-500 dark:text-indigo-400' : 'text-slate-400 dark:text-slate-500'}`} />
+                        <p className="text-sm text-slate-500 dark:text-slate-400"><span className="font-semibold text-indigo-500 dark:text-indigo-400">Upload a file</span> or drag & drop</p>
                         <p className="text-xs text-text-muted-light/70 dark:text-text-muted-dark/70">PDF, DOCX, TXT, Media, etc.</p>
                     </div>
                     <input ref={fileInputRef} id="file-upload-input" type="file" className="hidden" onChange={handleFileChange} accept=".pdf,.docx,.txt,.md,.mp3,.wav,.mp4,.mov,.png,.jpg,.jpeg" />
                 </label>
-                {selectedFile && ( <div className="mt-2 p-2 bg-gray-100 dark:bg-gray-700 rounded-md flex items-center justify-between text-sm animate-fadeIn"> <div className="flex items-center gap-2 truncate"> <FileText size={18} className="text-primary flex-shrink-0" /> <span className="truncate text-text-light dark:text-text-dark" title={selectedFile.name}>{selectedFile.name}</span> <span className="text-text-muted-light dark:text-text-muted-dark text-xs whitespace-nowrap"> ({(selectedFile.size / 1024).toFixed(1)} KB) </span> </div> <button onClick={() => setSelectedFile(null)} className="text-red-500 hover:text-red-700 dark:hover:text-red-400 transition-colors p-1 rounded-full hover:bg-red-500/10"> <XCircle size={18} /> </button> </div> )}
+                {selectedFile && (<div className="mt-2 p-2 bg-gray-100 dark:bg-gray-700 rounded-md flex items-center justify-between text-sm animate-fadeIn"> <div className="flex items-center gap-2 truncate"> <FileText size={18} className="text-primary flex-shrink-0" /> <span className="truncate text-text-light dark:text-text-dark" title={selectedFile.name}>{selectedFile.name}</span> <span className="text-text-muted-light dark:text-text-muted-dark text-xs whitespace-nowrap"> ({(selectedFile.size / 1024).toFixed(1)} KB) </span> </div> <button onClick={() => setSelectedFile(null)} className="text-red-500 hover:text-red-700 dark:hover:text-red-400 transition-colors p-1 rounded-full hover:bg-red-500/10"> <XCircle size={18} /> </button> </div>)}
                 <Button onClick={handleUpload} fullWidth className="mt-2 text-sm" variant="primary" disabled={!selectedFile} leftIcon={<UploadCloud size={16} />}> Process File </Button>
             </div>
 
             {/* --- NEW URL INGESTION SECTION --- */}
-            <div className="relative pt-4 border-t border-border-light dark:border-border-dark">
-                <p className="text-center text-xs text-text-muted-light dark:text-text-muted-dark absolute -top-2.5 left-1/2 -translate-x-1/2 bg-surface-light dark:bg-surface-dark px-2">OR</p>
-                <label htmlFor="url-input" className="block text-sm font-medium text-text-light dark:text-text-dark mb-1.5">Add from URL</label>
+            <div className="relative pt-4 border-t border-slate-100 dark:border-white/10">
+                <p className="text-center text-xs text-slate-400 dark:text-slate-500 absolute -top-2.5 left-1/2 -translate-x-1/2 bg-chat-surface-light dark:bg-chat-surface-dark px-2">OR</p>
+                <label htmlFor="url-input" className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1.5">Add from URL</label>
                 <div className="flex items-center gap-2">
                     <div className="relative flex-grow">
                         <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted-light dark:text-text-muted-dark" />

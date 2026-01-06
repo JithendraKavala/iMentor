@@ -165,7 +165,8 @@ def ingest_knowledge_graph(user_id: str, document_name: str, nodes: list, edges:
         return {"success": True, "message": "KG ingested.", "nodes_affected": nodes_affected, "edges_affected": edges_affected}
     except Exception as e:
         logger.error(f"Error during KG ingestion for doc '{document_name}': {e}", exc_info=True)
-        raise
+        # Soft failure: If KG is down, we don't want to crash the whole document generation flow
+        return {"success": False, "message": f"KG ingestion skipped due to error: {e}", "error": str(e)}
 
 def get_knowledge_graph(user_id: str, document_name: str) -> dict:
     try:

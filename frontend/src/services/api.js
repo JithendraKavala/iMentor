@@ -30,18 +30,18 @@ apiClient.interceptors.response.use(
 );
 
 function parseAnalysisOutput(rawOutput) {
-    if (!rawOutput || typeof rawOutput !== 'string') {
-        return { content: '', thinking: '' };
-    }
-    const thinkingMatch = rawOutput.match(/<thinking>([\s\S]*?)<\/thinking>/i);
-    let thinkingText = '';
-    let mainContent = rawOutput;
+  if (!rawOutput || typeof rawOutput !== 'string') {
+    return { content: '', thinking: '' };
+  }
+  const thinkingMatch = rawOutput.match(/<thinking>([\s\S]*?)<\/thinking>/i);
+  let thinkingText = '';
+  let mainContent = rawOutput;
 
-    if (thinkingMatch && thinkingMatch[1]) {
-        thinkingText = thinkingMatch[1].trim();
-        mainContent = rawOutput.replace(/<thinking>[\s\S]*?<\/thinking>\s*/i, '').trim();
-    }
-    return { content: mainContent, thinking: thinkingText };
+  if (thinkingMatch && thinkingMatch[1]) {
+    thinkingText = thinkingMatch[1].trim();
+    mainContent = rawOutput.replace(/<thinking>[\s\S]*?<\/thinking>\s*/i, '').trim();
+  }
+  return { content: mainContent, thinking: thinkingText };
 }
 
 const api = {
@@ -282,12 +282,12 @@ const api = {
     });
     return response.data; // Expects { improvedPrompt, explanation }
   },
-   // --- Academic Integrity Tools ---
+  // --- Academic Integrity Tools ---
   submitIntegrityCheck: async ({ text }) => {
     const response = await apiClient.post("/tools/analyze-integrity/submit", { text });
     return response.data; // Expects { reportId, initialReport }
   },
-  
+
   getIntegrityReport: async (reportId) => {
     const response = await apiClient.get(`/tools/analyze-integrity/report/${reportId}`);
     return response.data; // Expects the full report object with status updates
@@ -298,16 +298,16 @@ const api = {
   },
   generateDocument: async (payload) => {
     // This function now handles the entire download process, including error handling.
-    const response = await apiClient.post("/generate/document", payload, { 
-        responseType: "blob" // Crucial: expect a file blob
+    const response = await apiClient.post("/generate/document", payload, {
+      responseType: "blob" // Crucial: expect a file blob
     });
 
     // --- THIS IS THE FIX ---
     // If the server sent back a JSON error instead of a file, it will have this content type.
     if (response.data.type === 'application/json') {
-        const errorText = await response.data.text();
-        const errorJson = JSON.parse(errorText);
-        throw new Error(errorJson.message || "An unknown error occurred during generation.");
+      const errorText = await response.data.text();
+      const errorJson = JSON.parse(errorText);
+      throw new Error(errorJson.message || "An unknown error occurred during generation.");
     }
     // --- END OF FIX ---
 
@@ -319,7 +319,7 @@ const api = {
         filename = filenameMatch[1];
       }
     }
-    
+
     // Trigger browser download
     const url = window.URL.createObjectURL(new Blob([response.data]));
     const link = document.createElement('a');
@@ -329,10 +329,10 @@ const api = {
     link.click();
     link.parentNode.removeChild(link);
     window.URL.revokeObjectURL(url);
-    
+
     return { success: true, filename }; // Return success for toast messages
   },
-   generateDocumentFromTopic: async (payload) => {
+  generateDocumentFromTopic: async (payload) => {
     const { topic, docType } = payload;
     const response = await apiClient.post(
       `/generate/document/from-topic`,
@@ -341,9 +341,9 @@ const api = {
     );
 
     if (response.data.type === 'application/json') {
-        const errorText = await response.data.text();
-        const errorJson = JSON.parse(errorText);
-        throw new Error(errorJson.message || "An unknown error occurred during generation from topic.");
+      const errorText = await response.data.text();
+      const errorJson = JSON.parse(errorText);
+      throw new Error(errorJson.message || "An unknown error occurred during generation from topic.");
     }
 
 
@@ -356,7 +356,7 @@ const api = {
         filename = filenameMatch[1];
       }
     }
-    
+
     // Create a temporary link to trigger the browser's automatic download
     const url = window.URL.createObjectURL(new Blob([response.data]));
     const link = document.createElement('a');
@@ -368,14 +368,14 @@ const api = {
     // Clean up the temporary link from memory
     link.parentNode.removeChild(link);
     window.URL.revokeObjectURL(url);
-    
+
     return { success: true, filename }; // Return success status for the toast
   },
   submitFeedback: async (logId, feedback) => {
     const response = await apiClient.post(`/feedback/${logId}`, { feedback });
     return response.data;
   },
-  
+
 };
 
 

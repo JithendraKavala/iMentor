@@ -1,72 +1,61 @@
 // frontend/src/components/landing/FeaturesSection.jsx
 import React from 'react';
 import { motion } from 'framer-motion';
-import { 
-    GraduationCap, BookOpen, BrainCircuit, Code, FileQuestion, Headphones
-} from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ArrowUpRight } from 'lucide-react';
+import { solutionsData } from '../../data/solutionsData';
 
-const features = [
-    {
-        icon: GraduationCap,
-        title: "Personalized Study Plans",
-        description: "Describe your learning goals and get a custom, step-by-step curriculum with actionable modules designed to address your knowledge gaps.",
-    },
-    {
-        icon: BookOpen,
-        title: "Advanced Research Assistant",
-        description: "Engage with academic papers, search the web for real-time information, and chat with your own documents and URLs as your primary knowledge base.",
-    },
-    {
-        icon: BrainCircuit,
-        title: "Deep Analysis & Visualization",
-        description: "Automatically generate FAQs, key topic summaries, and mind maps from any document. Visualize concepts as interactive knowledge graphs.",
-    },
-    {
-        icon: Code,
-        title: "Secure Code Executor",
-        description: "Write, run, and test code in multiple languages within a secure sandbox. Get AI-powered feedback, error explanations, and test case generation.",
-    },
-    {
-        icon: FileQuestion,
-        title: "AI-Powered Quiz Generator",
-        description: "Upload any document (PDF, DOCX) and instantly generate a multiple-choice quiz to test your comprehension and prepare for exams.",
-    },
-    {
-        icon: Headphones,
-        title: "Content Creation Tools",
-        description: "Transform your study materials into engaging content. Generate high-quality audio podcasts or export detailed analysis into DOCX and PPTX formats.",
-    }
-];
+const FeatureCard = ({ id, title, shortDescription, icon: Icon, index }) => {
+    // Bento Grid Logic: First item spans 2 cols on medium screens, some others span different sizes
+    const isLarge = index === 0; // First item is large
 
-const FeatureCard = ({ icon: Icon, title, description, index }) => (
-    <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, amount: 0.5 }}
-        transition={{ duration: 0.5, delay: index * 0.1 }}
-        className="card-base p-6 text-center"
-    >
-        <div className="inline-flex items-center justify-center p-3 bg-primary/10 rounded-lg mb-4">
-            <Icon className="h-8 w-8 text-primary" />
-        </div>
-        <h3 className="text-lg font-semibold mb-2">{title}</h3>
-        <p className="text-sm text-text-muted-light dark:text-text-muted-dark">{description}</p>
-    </motion.div>
-);
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-50px" }}
+            transition={{ duration: 0.5, delay: index * 0.1 }}
+            className={`group relative overflow-hidden rounded-3xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-8 transition-all hover:shadow-xl hover:shadow-indigo-500/10 hover:-translate-y-1 ${isLarge ? 'md:col-span-2 md:row-span-2' : ''}`}
+        >
+            <div className="absolute inset-0 bg-gradient-to-br from-transparent to-indigo-500/5 dark:to-indigo-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
+            <div className="relative z-10 flex flex-col h-full">
+                <div className="mb-6 inline-flex items-center justify-center w-12 h-12 rounded-xl bg-white dark:bg-slate-800 shadow-sm text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform duration-300">
+                    <Icon size={24} />
+                </div>
+
+                <h3 className={`font-bold text-slate-900 dark:text-white mb-3 ${isLarge ? 'text-2xl md:text-3xl' : 'text-xl'}`}>
+                    {title}
+                </h3>
+
+                <p className="text-slate-600 dark:text-slate-400 leading-relaxed mb-6 flex-grow">
+                    {shortDescription}
+                </p>
+
+                <Link to={`/solutions/${id}`} className="inline-flex items-center gap-2 text-sm font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors">
+                    Learn more <ArrowUpRight size={16} />
+                </Link>
+            </div>
+        </motion.div>
+    );
+};
 
 const FeaturesSection = () => {
+    const features = Object.values(solutionsData);
+
     return (
-        <section id="features" className="py-20 lg:py-28 bg-background-light dark:bg-slate-900">
+        <section id="features" className="py-24 bg-white dark:bg-slate-950">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="text-center max-w-3xl mx-auto">
-                    <h2 className="text-3xl sm:text-4xl font-extrabold">A Smarter Way to Learn</h2>
-                    <p className="mt-4 text-lg text-text-muted-light dark:text-text-muted-dark">
-                        iMentor is more than a chatbot. It's an all-in-one platform with specialized tools built for the demands of higher education and technical fields.
-                    </p>
+                <div className="mb-16 max-w-3xl">
+                    <h2 className="text-indigo-600 dark:text-indigo-400 font-semibold tracking-wide uppercase text-sm mb-3">Capabilities</h2>
+                    <h3 className="text-3xl md:text-5xl font-bold text-slate-900 dark:text-white tracking-tight leading-tight">
+                        Everything you need to <br className="hidden md:block" /> excel in your studies.
+                    </h3>
                 </div>
-                <div className="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-[minmax(300px,auto)]">
                     {features.map((feature, index) => (
-                        <FeatureCard key={feature.title} index={index} {...feature} />
+                        <FeatureCard key={feature.id} {...feature} index={index} />
                     ))}
                 </div>
             </div>

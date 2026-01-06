@@ -17,8 +17,8 @@ import { renderMathInHtml } from '../../utils/markdownUtils';
 import { useAppState } from '../../contexts/AppStateContext.jsx';
 
 marked.setOptions({
-  breaks: true,
-  gfm: true,
+    breaks: true,
+    gfm: true,
 });
 
 const createMarkup = (markdownText) => {
@@ -49,6 +49,7 @@ const localParseAnalysisOutput = (rawOutput) => {
 };
 
 const ENGAGEMENT_TEXTS = {
+    quiz: ["Generating questions...", "Creating distractors...", "Finalizing quiz..."],
     faq: ["Analyzing FAQs...", "Identifying questions...", "Compiling answers..."],
     topics: ["Extracting topics...", "Identifying themes...", "Summarizing points..."],
     mindmap: ["Generating mind map...", "Structuring concepts...", "Visualizing..."],
@@ -102,8 +103,8 @@ function AnalysisToolRunner({ toolType, title, iconName, selectedDocumentFilenam
             setIsLoading(false); setError(''); setAnalysisContent(null);
             setAiReasoning(null); setIsDropdownOpen(false);
         } else {
-             setAnalysisContent(null); setAiReasoning(null);
-             setIsDropdownOpen(false); setError(''); setIsLoading(false);
+            setAnalysisContent(null); setAiReasoning(null);
+            setIsDropdownOpen(false); setError(''); setIsLoading(false);
         }
     }, [selectedDocumentFilename]);
 
@@ -147,7 +148,7 @@ function AnalysisToolRunner({ toolType, title, iconName, selectedDocumentFilenam
                 if (adminAnalysisData && adminAnalysisData.analysis && adminAnalysisData.analysis[toolType] !== undefined) {
                     const rawOutput = adminAnalysisData.analysis[toolType];
                     if (rawOutput === null || typeof rawOutput !== 'string' || rawOutput.trim() === "") {
-                         response = {
+                        response = {
                             content: `Notice: No stored ${toolType} analysis found for admin document "${selectedDocumentFilename}".`,
                             thinking: "Retrieved stored admin analysis entry, but content for this type was empty."
                         };
@@ -177,8 +178,8 @@ function AnalysisToolRunner({ toolType, title, iconName, selectedDocumentFilenam
                     setAnalysisContent(response.content);
                     setError(response.content);
                     if (response.content.startsWith("Error:")) {
-                         if (toast.isActive(toastId)) toast.error(`Error in ${title}: ${response.content.substring(0, 100)}...`, { id: toastId });
-                         else toast.error(`Error in ${title}: ${response.content.substring(0, 100)}...`);
+                        if (toast.isActive(toastId)) toast.error(`Error in ${title}: ${response.content.substring(0, 100)}...`, { id: toastId });
+                        else toast.error(`Error in ${title}: ${response.content.substring(0, 100)}...`);
                     }
                 } else {
                     setAnalysisContent(`No content was returned for ${title}.`);
@@ -212,7 +213,7 @@ function AnalysisToolRunner({ toolType, title, iconName, selectedDocumentFilenam
 
         try {
             const fullMarkdownContent = `## ${title}\\n\\n**Source Document:** \`${selectedDocumentFilename}\`\\n\\n---\\n\\n${analysisContent}`;
-            
+
             // The api.generateDocument function now handles the download.
             // We just need to call it and await its success or failure.
             const { filename } = await api.generateDocument({
@@ -220,7 +221,7 @@ function AnalysisToolRunner({ toolType, title, iconName, selectedDocumentFilenam
                 docType: docType,
                 sourceDocumentName: selectedDocumentFilename
             });
-            
+
             // The download is triggered inside the API service, so we just show a success toast.
             toast.success(`Download started for '${filename}'!`, { id: toastId });
 
@@ -272,7 +273,7 @@ function AnalysisToolRunner({ toolType, title, iconName, selectedDocumentFilenam
             return <div className="flex items-center justify-center h-48"><Loader2 size={32} className="animate-spin text-primary" /><p className="ml-2 text-text-muted-light dark:text-text-muted-dark">Loading analysis...</p></div>;
         }
         if (error && (!analysisContent || analysisContent === error)) {
-             return <p className="p-4 text-center text-red-500 dark:text-red-400">{error}</p>;
+            return <p className="p-4 text-center text-red-500 dark:text-red-400">{error}</p>;
         }
         if (!analysisContent) {
             return <p className="p-4 text-center text-text-muted-light dark:text-text-muted-dark">No analysis content available to display.</p>;
@@ -294,7 +295,7 @@ function AnalysisToolRunner({ toolType, title, iconName, selectedDocumentFilenam
                 </div>
                 <div className="flex items-center gap-1 flex-shrink-0">
                     <Button onClick={handleRunAnalysis} variant="primary" size="sm" className="!px-3 !py-1 text-xs" isLoading={isLoading} disabled={!selectedDocumentFilename || isLoading} title={!selectedDocumentFilename ? "Select a document first" : `Run ${title} Analysis`}>
-                       {isLoading ? (currentEngagementText.split(' ')[0] || "...") : "Run"}
+                        {isLoading ? (currentEngagementText.split(' ')[0] || "...") : "Run"}
                     </Button>
                     <IconButton icon={isSectionOpen ? ChevronUp : ChevronDown} onClick={() => setIsSectionOpen(!isSectionOpen)} size="sm" variant="ghost" className="p-1" aria-label={isSectionOpen ? "Collapse section" : "Expand section"} disabled={isLoading && isSectionOpen} />
                 </div>
@@ -302,8 +303,8 @@ function AnalysisToolRunner({ toolType, title, iconName, selectedDocumentFilenam
             <AnimatePresence>
                 {isSectionOpen && (
                     <motion.div key="tool-section-content" initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.25, ease: "easeInOut" }} className="mt-2 pt-2 border-t border-border-light dark:border-border-dark overflow-hidden">
-                        {isLoading && (<div className="text-xs text-text-muted-light dark:text-text-muted-dark p-2 flex items-center justify-center gap-2 animate-fadeIn"><Loader2 size={14} className="animate-spin"/> {currentEngagementText}</div>)}
-                        {error && !isLoading && (!analysisContent || analysisContent === error) && (<div className="my-2 p-2 bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-300 rounded-md text-xs flex items-center gap-1"><AlertTriangle size={14} /> {error.length > 150 ? error.substring(0,147) + "..." : error}</div>)}
+                        {isLoading && (<div className="text-xs text-text-muted-light dark:text-text-muted-dark p-2 flex items-center justify-center gap-2 animate-fadeIn"><Loader2 size={14} className="animate-spin" /> {currentEngagementText}</div>)}
+                        {error && !isLoading && (!analysisContent || analysisContent === error) && (<div className="my-2 p-2 bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-300 rounded-md text-xs flex items-center gap-1"><AlertTriangle size={14} /> {error.length > 150 ? error.substring(0, 147) + "..." : error}</div>)}
                         {!isLoading && (analysisContent || aiReasoning) && isDropdownOpen && (
                             <motion.div key="analysis-dropdown" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }} className="mt-2 space-y-2">
                                 {showReasoning && aiReasoning && (
@@ -313,7 +314,7 @@ function AnalysisToolRunner({ toolType, title, iconName, selectedDocumentFilenam
                                     </details>
                                 )}
                                 {analysisContent && !error && (
-                                     <Button onClick={() => setIsModalOpen(true)} variant="outline" size="sm" fullWidth leftIcon={<Eye size={14}/>} className="!py-1.5 text-xs border-primary/70 text-primary hover:bg-primary/10 dark:border-primary-light/70 dark:text-primary-light dark:hover:bg-primary-light/10">View Full {title}</Button>
+                                    <Button onClick={() => setIsModalOpen(true)} variant="outline" size="sm" fullWidth leftIcon={<Eye size={14} />} className="!py-1.5 text-xs border-primary/70 text-primary hover:bg-primary/10 dark:border-primary-light/70 dark:text-primary-light dark:hover:bg-primary-light/10">View Full {title}</Button>
                                 )}
                             </motion.div>
                         )}
@@ -328,39 +329,39 @@ function AnalysisToolRunner({ toolType, title, iconName, selectedDocumentFilenam
                 title={`${title} for "${selectedDocumentFilename || 'document'}"`}
                 size={toolType === 'mindmap' ? "3xl" : "xl"}
                 footerContent={
-                <>
-                    {toolType === 'mindmap' && analysisContent && !error && (
-                        <Button onClick={() => handleDownloadMindmap('svg')} variant="outline" size="sm" className="text-xs" leftIcon={<Download size={14}/>}>SVG</Button>
-                    )}
-                    
-                    {toolType !== 'mindmap' && analysisContent && !error && (
-                        <>
-                           <Button 
-                                onClick={() => handleGenerateDocument('pptx')} 
-                                variant="outline" size="sm" className="text-xs" 
-                                leftIcon={<FileBarChart2 size={14}/>}
-                                isLoading={generatingDocType === 'pptx'}
-                                disabled={!!generatingDocType}
-                            >
-                                {generatingDocType === 'pptx' ? 'Generating...' : 'Generate PPTX'}
-                            </Button>
-                           <Button 
-                                onClick={() => handleGenerateDocument('docx')} 
-                                variant="outline" size="sm" className="text-xs" 
-                                leftIcon={<FileText size={14}/>}
-                                isLoading={generatingDocType === 'docx'}
-                                disabled={!!generatingDocType}
-                            >
-                                {generatingDocType === 'docx' ? 'Generating...' : 'Generate DOCX'}
-                            </Button>
-                        </>
-                    )}
+                    <>
+                        {toolType === 'mindmap' && analysisContent && !error && (
+                            <Button onClick={() => handleDownloadMindmap('svg')} variant="outline" size="sm" className="text-xs" leftIcon={<Download size={14} />}>SVG</Button>
+                        )}
 
-                    <div className="flex-grow"></div>
-                    <Button onClick={() => setIsModalOpen(false)} variant="secondary" size="sm" className="text-xs" disabled={!!generatingDocType}>
-                        Close
-                    </Button>
-                </>}
+                        {toolType !== 'mindmap' && analysisContent && !error && (
+                            <>
+                                <Button
+                                    onClick={() => handleGenerateDocument('pptx')}
+                                    variant="outline" size="sm" className="text-xs"
+                                    leftIcon={<FileBarChart2 size={14} />}
+                                    isLoading={generatingDocType === 'pptx'}
+                                    disabled={!!generatingDocType}
+                                >
+                                    {generatingDocType === 'pptx' ? 'Generating...' : 'Generate PPTX'}
+                                </Button>
+                                <Button
+                                    onClick={() => handleGenerateDocument('docx')}
+                                    variant="outline" size="sm" className="text-xs"
+                                    leftIcon={<FileText size={14} />}
+                                    isLoading={generatingDocType === 'docx'}
+                                    disabled={!!generatingDocType}
+                                >
+                                    {generatingDocType === 'docx' ? 'Generating...' : 'Generate DOCX'}
+                                </Button>
+                            </>
+                        )}
+
+                        <div className="flex-grow"></div>
+                        <Button onClick={() => setIsModalOpen(false)} variant="secondary" size="sm" className="text-xs" disabled={!!generatingDocType}>
+                            Close
+                        </Button>
+                    </>}
             >
                 <div className={`max-h-[70vh] overflow-y-auto custom-scrollbar p-1 pr-2 rounded-md shadow-inner ${toolType === 'mindmap' ? 'bg-transparent dark:bg-transparent' : 'bg-gray-50 dark:bg-gray-800'}`}>
                     {selectedDocumentFilename && (

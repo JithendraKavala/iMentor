@@ -28,13 +28,13 @@ You are an expert data architect. Your task is to analyze the provided text and 
 async function extractAndStoreKgFromText(text, sessionId, userId, llmConfig) {
   const logPrefix = `[KG Extraction Service] Session: ${sessionId}`;
   try {
-   
-    const { preferredLlmProvider, ollamaUrl, ollamaModel, apiKey } = llmConfig; // Use passed-in config
+
+    const { llmProvider, ollamaUrl, ollamaModel, apiKey } = llmConfig; // Use passed-in config
 
     const llmService =
-      preferredLlmProvider === "ollama" ? ollamaService : geminiService;
+      llmProvider === "ollama" ? ollamaService : geminiService;
 
-    if (preferredLlmProvider === "gemini" && !apiKey) {
+    if (llmProvider === "gemini" && !apiKey) {
       throw new Error(
         "User has selected Gemini but has no API key configured."
       );

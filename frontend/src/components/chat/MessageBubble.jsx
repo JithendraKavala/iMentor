@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback, memo } from 'react';
+import React, { useEffect, useRef, useState, useCallback, memo, useMemo } from 'react';
 import { marked } from 'marked';
 import Prism from 'prismjs';
 import toast from 'react-hot-toast';
@@ -13,12 +13,13 @@ import { getPlainTextFromMarkdown, copyToClipboard } from '../../utils/helpers.j
 import DOMPurify from 'dompurify';
 import { useTypingEffect } from '../../hooks/useTypingEffect.js';
 import api from '../../services/api.js';
+import ToolOutputRenderer from './ToolOutputRenderer.jsx'; // Import the renderer
 
 marked.setOptions({ breaks: true, gfm: true });
 
 const createMarkup = (markdownText) => {
     if (!markdownText) return { __html: '' };
-    
+
     let processedText = markdownText.trim();
 
     if (processedText.startsWith('```markdown') && processedText.endsWith('```')) {
@@ -29,7 +30,7 @@ const createMarkup = (markdownText) => {
             processedText = processedText.substring(firstNewLine + 1, processedText.length - 3).trim();
         }
     }
-    
+
     let rawHtml = marked.parse(processedText);
     rawHtml = renderMathInHtml(rawHtml);
     const cleanHtml = DOMPurify.sanitize(rawHtml, { USE_PROFILES: { html: true, mathMl: true, svg: true } });
@@ -96,7 +97,7 @@ const CodeBlockWithCopyButton = ({ children, codeText, key }) => {
 
     return (
         <div className="relative group/code" ref={codeRef} key={key}>
-            <div dangerouslySetInnerHTML={{ __html: children }} /> 
+            <div dangerouslySetInnerHTML={{ __html: children }} />
             <button
                 onClick={handleCopyCode}
                 title={copied ? 'Copied!' : 'Copy code'}
@@ -133,8 +134,8 @@ const parseAndRenderMarkdown = (markdownText, messageId) => {
     const flushHtmlBuffer = () => {
         if (currentHtmlBuffer) {
             resultNodes.push(
-                <div key={`html-${messageId}-${resultNodes.length}-${Math.random().toString(36).substring(2,9)}`} 
-                     dangerouslySetInnerHTML={{ __html: currentHtmlBuffer }} />
+                <div key={`html-${messageId}-${resultNodes.length}-${Math.random().toString(36).substring(2, 9)}`}
+                    dangerouslySetInnerHTML={{ __html: currentHtmlBuffer }} />
             );
             currentHtmlBuffer = '';
         }
@@ -151,28 +152,28 @@ const parseAndRenderMarkdown = (markdownText, messageId) => {
             const preOuterHtml = node.outerHTML;
 
             resultNodes.push(
-                <CodeBlockWithCopyButton 
-                    key={`code-${messageId}-${resultNodes.length}-${Math.random().toString(36).substring(2,9)}`}
+                <CodeBlockWithCopyButton
+                    key={`code-${messageId}-${resultNodes.length}-${Math.random().toString(36).substring(2, 9)}`}
                     codeText={codeText}
                 >
                     {preOuterHtml}
                 </CodeBlockWithCopyButton>
             );
-            return; 
-        } 
-        
+            return;
+        }
+
         if (node.nodeType === Node.TEXT_NODE) {
             currentHtmlBuffer += node.nodeValue;
         } else if (node.nodeType === Node.ELEMENT_NODE) {
-            currentHtmlBuffer += node.outerHTML; 
-            return; 
+            currentHtmlBuffer += node.outerHTML;
+            return;
         }
 
         Array.from(node.childNodes).forEach(traverse);
     };
 
     Array.from(doc.body.children).forEach(traverse);
-    
+
     flushHtmlBuffer();
 
     return resultNodes;
@@ -228,9 +229,53 @@ function MessageBubble({ sender, text, thinking, references, timestamp, sourcePi
     const [feedbackSent, setFeedbackSent] = useState(null);
     const contentRef = useRef(null);
     const { speak, cancel, isSpeaking } = useTextToSpeech();
-    
+
     const [isCopied, setIsCopied] = useState(false);
+
+    // Check if text is likely JSON tool output (Array or Object)
+    const [isToolOutput, cleanedContent] = useMemo(() => {
+        if (!text || typeof text !== 'string') return [false, ''];
+        let trimmed = text.trim();
+
+        // Strip markdown code blocks if present
+        if (trimmed.startsWith('```')) {
+            const firstNewLine = trimmed.indexOf('\n');
+            if (firstNewLine !== -1) {
+                trimmed = trimmed.substring(firstNewLine + 1).trim();
+            }
+            if (trimmed.endsWith('```')) {
+                trimmed = trimmed.substring(0, trimmed.length - 3).trim();
+            }
+        }
+
+        // Remove "json" language identifier if it was left over or handled by above
+        if (trimmed.startsWith('json')) {
+            trimmed = trimmed.substring(4).trim();
+        }
+
+        // Check for JSON start/end brackets
+        const isJson = (trimmed.startsWith('{') && trimmed.endsWith('}')) ||
+            (trimmed.startsWith('[') && trimmed.endsWith(']'));
+
+        // Check for likely tool properties to avoid false positives (e.g. code blocks)
+        // We look for keys like "question", "answer", "topic", "children", "id"
+        // But also, if it's a bare array of objects, might be tricky. 
+        // Let's rely on basic JSON + reasonable length/content heuristics or known keys.
+        const hasToolKeys = trimmed.includes('"question"') ||
+            trimmed.includes('"topic"') ||
+            trimmed.includes('"root"') ||
+            trimmed.includes('"children"') ||
+            trimmed.includes('"id"') ||
+            trimmed.includes('"description"') ||
+            trimmed.includes('"options"') ||
+            trimmed.includes('"correctAnswer"');
+
+        return [isJson && hasToolKeys, trimmed];
+    }, [text]);
+
     const mainContent = text || '';
+
+
     const thinkingContent = thinking;
     const showThinkingDropdown = !isUser && thinkingContent !== null;
 
@@ -259,7 +304,7 @@ function MessageBubble({ sender, text, thinking, references, timestamp, sourcePi
         if (isCopied) return;
         const plainTextToCopy = getPlainTextFromMarkdown(mainContent);
         const success = await copyToClipboard(plainTextToCopy);
-    
+
         if (success) {
             setIsCopied(true);
             setTimeout(() => setIsCopied(false), 1500);
@@ -270,7 +315,7 @@ function MessageBubble({ sender, text, thinking, references, timestamp, sourcePi
     };
 
     const formatTimestamp = (ts) => {
-        if (!ts) return ''; 
+        if (!ts) return '';
         return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     };
 
@@ -283,7 +328,7 @@ function MessageBubble({ sender, text, thinking, references, timestamp, sourcePi
         if (lower.includes('error')) return <ServerCrash size={12} className="text-red-400" title="Error" />;
         return null;
     };
-    
+
     return (
         <div className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} w-full group`}>
             <div className={`message-bubble-wrapper max-w-[85%] md:max-w-[75%] ${isStreaming ? 'w-full' : ''}`}>
@@ -294,8 +339,8 @@ function MessageBubble({ sender, text, thinking, references, timestamp, sourcePi
                             setIsOpen={setIsDropdownOpen}
                             isStreaming={isStreaming}
                         >
-                            {isStreaming 
-                                ? <AnimatedThinking content={thinkingContent} /> 
+                            {isStreaming
+                                ? <AnimatedThinking content={thinkingContent} />
                                 : <div className="prose prose-xs dark:prose-invert max-w-none text-text-muted-light dark:text-text-muted-dark" dangerouslySetInnerHTML={createMarkup(thinkingContent)} />
                             }
                         </ThinkingDropdown>
@@ -305,49 +350,52 @@ function MessageBubble({ sender, text, thinking, references, timestamp, sourcePi
                 {isStreaming ? (
                     <TypingIndicator />
                 ) : (
-                    <div className={`message-bubble relative p-3 rounded-2xl shadow-md break-words ${
-                        isUser 
-                        ? 'bg-surface-light text-text-light border border-border-light dark:bg-primary-dark dark:text-white dark:border-transparent rounded-br-lg' 
-                        : 'bg-surface-light dark:bg-surface-dark text-text-light dark:text-text-dark rounded-bl-lg border border-border-light dark:border-border-dark'
-                    }`}>
-                        <div ref={contentRef} className="prose prose-sm dark:prose-invert max-w-none message-content leading-relaxed">
-                            {parseAndRenderMarkdown(mainContent, messageId)}
+                    <div className={`message-bubble relative group/bubble ${isUser
+                        ? 'bg-chat-bubble-user-light dark:bg-chat-bubble-user-dark text-chat-text-light dark:text-chat-text-dark rounded-2xl rounded-tr-sm px-5 py-3.5 shadow-sm'
+                        : 'bg-transparent text-chat-text-light dark:text-chat-text-dark pl-0'
+                        }`}>
+                        {!isUser && (
+                            <div className="absolute -left-10 top-0 hidden md:flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
+                                <Zap size={16} fill="currentColor" />
+                            </div>
+                        )}
+
+                        <div ref={contentRef} className={`prose prose-sm dark:prose-invert max-w-none message-content leading-7 ${isUser ? '' : 'prose-headings:font-semibold prose-headings:text-chat-text-light dark:prose-headings:text-chat-text-dark prose-p:text-chat-text-light dark:prose-p:text-chat-text-dark prose-pre:bg-chat-sidebar-dark dark:prose-pre:bg-chat-sidebar-light prose-pre:border prose-pre:border-chat-sidebar-dark dark:prose-pre:border-chat-sidebar-light'}`}>
+                            {isToolOutput ? (
+                                <ToolOutputRenderer content={cleanedContent} onAction={onCueClick} />
+                            ) : (
+                                parseAndRenderMarkdown(mainContent, messageId)
+                            )}
                         </div>
 
-                        <div className="flex items-center justify-end mt-1.5 text-xs gap-1">
-                            <button onClick={handleCopy} title={isCopied ? 'Copied!' : 'Copy content'} disabled={isCopied} className="p-1 rounded-md text-text-muted-light dark:text-text-muted-dark hover:bg-gray-200 dark:hover:bg-gray-700 opacity-0 group-hover:opacity-100 transition-all duration-200 focus:outline-none">
-                                <AnimatePresence mode="wait" initial={false}>
-                                    <motion.div key={isCopied ? 'check' : 'copy'} initial={{ scale: 0.6, opacity: 0, rotate: -30 }} animate={{ scale: 1, opacity: 1, rotate: 0 }} exit={{ scale: 0.6, opacity: 0, rotate: 30 }} transition={{ duration: 0.15 }}>
-                                        {isCopied ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
-                                    </motion.div>
-                                </AnimatePresence>
-                            </button>
+                        <div className={`flex items-center gap-2 mt-2 text-[10px] text-slate-400 dark:text-slate-500 opacity-0 group-hover/bubble:opacity-100 transition-opacity ${isUser ? 'justify-end' : 'justify-start'}`}>
 
-                            {!isUser && logId && (
-                                <div className="flex items-center gap-0.5 ml-2 border-l border-border-light dark:border-border-dark pl-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                                    <IconButton
-                                        icon={ThumbsUp}
-                                        onClick={() => handleFeedback('positive')}
-                                        disabled={!!feedbackSent}
-                                        title="Good response"
-                                        size="sm"
-                                        className={`p-1 ${feedbackSent === 'positive' ? 'text-green-500 bg-green-500/10' : 'hover:text-green-500'}`}
-                                    />
-                                    <IconButton
-                                        icon={ThumbsDown}
-                                        onClick={() => handleFeedback('negative')}
-                                        disabled={!!feedbackSent}
-                                        title="Bad response"
-                                        size="sm"
-                                        className={`p-1 ${feedbackSent === 'negative' ? 'text-red-500 bg-red-500/10' : 'hover:text-red-500'}`}
-                                    />
-                                </div>
+                            {!isUser && getPipelineIcon() && (
+                                <span className="flex items-center gap-1 bg-slate-50 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-100 dark:border-slate-700">
+                                    {getPipelineIcon()} <span className="uppercase tracking-wider">Pipeline</span>
+                                </span>
                             )}
-                            <div className="flex items-center gap-2 pl-1 opacity-70">
-                                {!isUser && getPipelineIcon() && <span className="mr-1">{getPipelineIcon()}</span>}
-                                <span>{formatTimestamp(timestamp)}</span>
+
+                            <span>{formatTimestamp(timestamp)}</span>
+
+                            <div className="flex items-center gap-1 ml-2">
+                                <button onClick={handleCopy} title="Copy" className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+                                    {isCopied ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
+                                </button>
+
                                 {!isUser && (
-                                    <IconButton icon={isSpeaking ? StopCircle : Volume2} onClick={() => isSpeaking ? cancel() : speak({ text: mainContent })} title={isSpeaking ? "Stop reading" : "Read aloud"} size="sm" variant="ghost" className={`p-0.5 ${isSpeaking ? 'text-red-500' : 'text-text-muted-light dark:text-text-muted-dark hover:text-primary'}`} />
+                                    <>
+                                        <button onClick={() => isSpeaking ? cancel() : speak({ text: mainContent })} title="Read Aloud" className={`p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors ${isSpeaking ? 'text-indigo-500' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}>
+                                            {isSpeaking ? <StopCircle size={12} /> : <Volume2 size={12} />}
+                                        </button>
+                                        <div className="w-px h-3 bg-slate-200 dark:bg-slate-700 mx-1"></div>
+                                        <button onClick={() => handleFeedback('positive')} disabled={!!feedbackSent} className={`p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors ${feedbackSent === 'positive' ? 'text-emerald-500' : 'text-slate-400 hover:text-emerald-500'}`}>
+                                            <ThumbsUp size={12} />
+                                        </button>
+                                        <button onClick={() => handleFeedback('negative')} disabled={!!feedbackSent} className={`p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors ${feedbackSent === 'negative' ? 'text-red-500' : 'text-slate-400 hover:text-red-500'}`}>
+                                            <ThumbsDown size={12} />
+                                        </button>
+                                    </>
                                 )}
                             </div>
                         </div>
@@ -366,8 +414,8 @@ function MessageBubble({ sender, text, thinking, references, timestamp, sourcePi
                         </summary>
                         <ul className="mt-1 pl-1 space-y-0.5 text-[0.7rem]">
                             {references.map((ref, index) => (
-                                <li 
-                                    key={index} 
+                                <li
+                                    key={index}
                                     className="text-text-muted-light dark:text-text-muted-dark hover:text-text-light dark:hover:text-text-dark transition-colors truncate"
                                     title={`Preview: ${escapeHtml(ref.content_preview || '')}\nSource: ${escapeHtml(ref.source || '')}`}
                                 >
@@ -378,9 +426,9 @@ function MessageBubble({ sender, text, thinking, references, timestamp, sourcePi
                     </details>
                 </div>
             )}
-            
+
             {!isStreaming && !isUser && criticalThinkingCues && (
-                <motion.div 
+                <motion.div
                     initial="hidden"
                     animate="visible"
                     variants={{
@@ -429,8 +477,8 @@ function MessageBubble({ sender, text, thinking, references, timestamp, sourcePi
                     </div>
                 </motion.div>
             )}
-            </div>
-        );
-    }
+        </div>
+    );
+}
 
 export default memo(MessageBubble);

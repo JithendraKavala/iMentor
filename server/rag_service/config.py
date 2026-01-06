@@ -86,8 +86,13 @@ LOGGING_FORMAT     = '%(asctime)s - %(levelname)s - [%(name)s:%(lineno)d] - %(me
 
 # --- API Keys and Service URLs ---
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
-GEMINI_MODEL_NAME = "gemini-1.5-flash-latest" # Or your preferred Gemini model
+GEMINI_MODEL_NAME = "gemma-3-27b-it" # User requested model via Google API
 SENTRY_DSN = os.getenv('SENTRY_DSN')
+
+# --- LLM Provider Settings ---
+LLM_PROVIDER = os.getenv('LLM_PROVIDER', 'gemini') 
+OLLAMA_BASE_URL = os.getenv('OLLAMA_BASE_URL', 'http://localhost:11434')
+OLLAMA_MODEL_NAME = "gemma-3-27b" # Keep as backup for local
 TURNITIN_API_URL = os.getenv('TURNITIN_API_URL')
 TURNITIN_API_KEY = os.getenv('TURNITIN_API_KEY')
 TURNITIN_API_SECRET = os.getenv('TURNITIN_API_SECRET')

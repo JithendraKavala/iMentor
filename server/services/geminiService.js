@@ -2,7 +2,7 @@
 const { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } = require('@google/generative-ai');
 
 const FALLBACK_API_KEY = process.env.GEMINI_API_KEY;
-const MODEL_NAME = "gemini-2.5-flash";
+const MODEL_NAME = "gemma-3-27b-it";
 
 const DEFAULT_MAX_OUTPUT_TOKENS_CHAT = 8192;
 const DEFAULT_MAX_OUTPUT_TOKENS_KG = 8192;
@@ -31,7 +31,7 @@ async function generateContentWithHistory(
         const genAI = new GoogleGenerativeAI(apiKeyToUse);
 
         if (typeof currentUserQuery !== 'string' || currentUserQuery.trim() === '') {
-             throw new Error("currentUserQuery must be a non-empty string.");
+            throw new Error("currentUserQuery must be a non-empty string.");
         }
 
         const generationConfig = {
@@ -39,17 +39,31 @@ async function generateContentWithHistory(
             maxOutputTokens: options.maxOutputTokens || DEFAULT_MAX_OUTPUT_TOKENS_CHAT,
         };
 
+        const isGemma = MODEL_NAME.toLowerCase().includes('gemma');
+
+        // Gemma models don't support 'systemInstruction' via the API param yet,
+        // so we manually prepend it to the query/prompt if it's a Gemma model.
+        let finalUserQuery = currentUserQuery;
+        let finalSystemInstruction = undefined;
+
+        if (systemPromptText && typeof systemPromptText === 'string' && systemPromptText.trim() !== '') {
+            if (isGemma) {
+                finalUserQuery = `${systemPromptText.trim()}\n\n${currentUserQuery}`;
+            } else {
+                finalSystemInstruction = { parts: [{ text: systemPromptText.trim() }] };
+            }
+        }
+
         const model = genAI.getGenerativeModel({
             model: MODEL_NAME,
-            systemInstruction: (systemPromptText && typeof systemPromptText === 'string' && systemPromptText.trim() !== '') ? 
-                { parts: [{ text: systemPromptText.trim() }] } : undefined,
+            systemInstruction: finalSystemInstruction,
             safetySettings: baseSafetySettings,
         });
 
         const historyForStartChat = (chatHistory || [])
             .map(msg => ({
-                 role: msg.role, 
-                 parts: Array.isArray(msg.parts) ? msg.parts.map(part => ({ text: part.text || '' })) : [{text: msg.text || ''}] 
+                role: msg.role,
+                parts: Array.isArray(msg.parts) ? msg.parts.map(part => ({ text: part.text || '' })) : [{ text: msg.text || '' }]
             }))
             .filter(msg => msg.role && msg.parts && msg.parts.length > 0 && typeof msg.parts[0].text === 'string');
 
@@ -58,7 +72,7 @@ async function generateContentWithHistory(
             generationConfig: generationConfig,
         });
 
-        console.log(`Sending message to Gemini. History sent: ${historyForStartChat.length}. System Prompt: ${!!systemPromptText}. Max Tokens: ${generationConfig.maxOutputTokens}`);
+        console.log(`Sending message to Gemini/Gemma. History: ${historyForStartChat.length}. System Prompt (Config): ${!!finalSystemInstruction}. IsGemma: ${isGemma}`);
         // console.log(`Current User Query to sendMessage (first 100): "${currentUserQuery.substring(0,100)}..."`); // Can be very long
 
         // console.log("\n==================== START GEMINI FINAL INPUT ====================");
@@ -78,7 +92,7 @@ async function generateContentWithHistory(
         // console.log(currentUserQuery);
         // console.log("==================== END GEMINI FINAL INPUT ====================\n");
 
-        const result = await chat.sendMessage(currentUserQuery);
+        const result = await chat.sendMessage(finalUserQuery);
         const response = result.response;
         const candidate = response?.candidates?.[0];
 
@@ -89,22 +103,22 @@ async function generateContentWithHistory(
             }
             return responseText;
         } else {
-             const finishReason = candidate?.finishReason || 'Unknown';
-             const safetyRatings = candidate?.safetyRatings;
-             console.warn("Gemini response was potentially blocked or had issues.", { finishReason, safetyRatings });
-             let blockMessage = `AI response generation failed or was blocked.`;
-             if (finishReason === 'SAFETY') {
-                 blockMessage += ` Reason: SAFETY.`;
-                 if (safetyRatings) {
+            const finishReason = candidate?.finishReason || 'Unknown';
+            const safetyRatings = candidate?.safetyRatings;
+            console.warn("Gemini response was potentially blocked or had issues.", { finishReason, safetyRatings });
+            let blockMessage = `AI response generation failed or was blocked.`;
+            if (finishReason === 'SAFETY') {
+                blockMessage += ` Reason: SAFETY.`;
+                if (safetyRatings) {
                     const blockedCategories = safetyRatings.filter(r => r.blocked).map(r => r.category).join(', ');
                     if (blockedCategories) blockMessage += ` Blocked Categories: ${blockedCategories}.`;
-                 }
-             } else if (finishReason) {
-                 blockMessage += ` Reason: ${finishReason}.`;
-             }
-             const error = new Error(blockMessage);
-             error.status = 400;
-             throw error;
+                }
+            } else if (finishReason) {
+                blockMessage += ` Reason: ${finishReason}.`;
+            }
+            const error = new Error(blockMessage);
+            error.status = 400;
+            throw error;
         }
     } catch (error) {
         console.error("Gemini API Call Error:", error?.message || error);
@@ -128,16 +142,16 @@ async function generateContentWithHistory(
         } else if (error.message?.includes("model is overloaded")) {
             clientMessage = "The AI model is currently overloaded. Please try again in a moment.";
         } else if (error.status === 400) {
-            clientMessage = `${error.message}`; 
+            clientMessage = `${error.message}`;
         }
         const enhancedError = new Error(clientMessage);
-        enhancedError.status = error.status || 500; 
-        enhancedError.originalError = error; 
+        enhancedError.status = error.status || 500;
+        enhancedError.originalError = error;
         throw enhancedError;
     }
 };
 
 module.exports = {
     generateContentWithHistory,
-    DEFAULT_MAX_OUTPUT_TOKENS_KG 
+    DEFAULT_MAX_OUTPUT_TOKENS_KG
 }

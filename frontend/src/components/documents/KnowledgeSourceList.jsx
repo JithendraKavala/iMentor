@@ -28,7 +28,7 @@ const formatRelativeTime = (dateString) => {
     }
 };
 
-function KnowledgeSourceList({ onSelectSource, selectedSource, onRefreshNeeded }) {
+function KnowledgeSourceList({ toggleDocumentSelection, selectedDocuments, onRefreshNeeded }) {
     const [sources, setSources] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -44,7 +44,7 @@ function KnowledgeSourceList({ onSelectSource, selectedSource, onRefreshNeeded }
             setSources(userOnlySources)
             // Check if there are any sources still processing to decide if we need to continue polling.
             const stillProcessing = fetchedSources.some(s => s.status && s.status.startsWith('processing'));
-            
+
             if (pollingIntervalRef.current && !stillProcessing) {
                 console.log("[Polling] All sources processed. Stopping polling.");
                 clearInterval(pollingIntervalRef.current);
@@ -103,14 +103,15 @@ function KnowledgeSourceList({ onSelectSource, selectedSource, onRefreshNeeded }
             return;
         }
         if (!window.confirm(`Are you sure you want to delete "${sourceTitle}"? This will remove it and all its associated data.`)) return;
-        
+
         const toastId = toast.loading(`Deleting ${sourceTitle}...`);
         try {
             await api.deleteKnowledgeSource(sourceId);
             toast.success(`"${sourceTitle}" deleted.`, { id: toastId });
             fetchSources();
-            if (selectedSource === sourceTitle) {
-                onSelectSource(null);
+            fetchSources();
+            if (selectedDocuments.includes(sourceTitle)) {
+                toggleDocumentSelection(sourceTitle);
             }
         } catch (err) {
             toast.error(`Delete failed: ${err.message}`, { id: toastId });
@@ -145,7 +146,7 @@ function KnowledgeSourceList({ onSelectSource, selectedSource, onRefreshNeeded }
         // ... (the main return JSX with the list mapping remains exactly the same) ...
         <div className="space-y-1.5 text-xs custom-scrollbar pr-1">
             {sources.map(source => {
-                const isSelected = selectedSource === source.title;
+                const isSelected = selectedDocuments.includes(source.title);
                 const isProcessing = source.status && source.status.startsWith('processing');
                 const isFailed = source.status === 'failed';
                 const isSelectable = source.status === 'completed';
@@ -154,14 +155,20 @@ function KnowledgeSourceList({ onSelectSource, selectedSource, onRefreshNeeded }
                 return (
                     <div
                         key={source._id}
-                        onClick={() => isSelectable && onSelectSource(isSelected ? null : source.title)}
+                        onClick={() => isSelectable && toggleDocumentSelection(source.title)}
                         className={`p-2.5 bg-surface-light dark:bg-gray-800 border rounded-md flex items-center justify-between transition-all duration-150
                                     ${isSelectable ? 'cursor-pointer hover:shadow-md' : 'cursor-default opacity-80'}
                                     ${isSelected ? 'ring-2 ring-primary dark:ring-primary-light shadow-lg border-primary dark:border-primary-light' : 'border-border-light dark:border-border-dark'}`}
-                        title={isSelectable ? `Select ${source.title}` : `Status: ${source.status} - ${source.failureReason || ''}`}
+                        title={isSelectable ? (isSelected ? "Deselect" : "Select") : `Status: ${source.status} - ${source.failureReason || ''}`}
                     >
                         <div className="flex items-center gap-2 truncate">
-                            {isSelected ? <CheckCircle size={16} className="text-green-500 flex-shrink-0" /> : <Icon size={16} className="text-primary dark:text-primary-light flex-shrink-0" />}
+                            {isSelected ? (
+                                <CheckCircle size={16} className="text-green-500 flex-shrink-0" />
+                            ) : (
+                                <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${isSelected ? 'border-green-500 bg-green-500/10' : 'border-slate-300 dark:border-slate-600'}`}>
+                                    {/* Empty box or check */}
+                                </div>
+                            )}
                             <div className="truncate">
                                 <span className={`block truncate ${isSelected ? 'font-semibold text-primary dark:text-primary-light' : 'text-text-light dark:text-text-dark'}`}>{source.title}</span>
                                 <span className="text-[0.7rem] text-text-muted-light dark:text-text-muted-dark">
@@ -170,14 +177,14 @@ function KnowledgeSourceList({ onSelectSource, selectedSource, onRefreshNeeded }
                             </div>
                         </div>
                         <div className="flex items-center gap-1.5 flex-shrink-0">
-                             {isProcessing && <Loader2 size={14} className="animate-spin text-accent" title={`Processing... (${source.status})`} />}
-                             {isFailed && <AlertTriangle size={14} className="text-red-500" title={`Processing failed: ${source.failureReason || 'Unknown error'}`} />}
-                             {source.sourceType !== 'subject' && (
+                            {isProcessing && <Loader2 size={14} className="animate-spin text-accent" title={`Processing... (${source.status})`} />}
+                            {isFailed && <AlertTriangle size={14} className="text-red-500" title={`Processing failed: ${source.failureReason || 'Unknown error'}`} />}
+                            {source.sourceType !== 'subject' && (
                                 <IconButton icon={Trash2} size="sm" variant="ghost" title="Delete"
                                     onClick={(e) => { e.stopPropagation(); handleDelete(source._id, source.title, source.sourceType); }}
                                     className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 p-1"
                                 />
-                             )}
+                            )}
                         </div>
                     </div>
                 );

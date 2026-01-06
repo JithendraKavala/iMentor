@@ -21,8 +21,9 @@ export const AppStateProvider = ({ children }) => {
     });
 
     const [selectedLLM, setSelectedLLM] = useState(localStorage.getItem('selectedLLM') || 'gemini');
-    const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(true);
-    const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
+    const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(false);
+    const [isRightPanelOpen, setIsRightPanelOpen] = useState(false);
+    const [rightPanelMode, setRightPanelMode] = useState('tools'); // 'tools' | 'knowledge_base'
 
     const [currentSessionId, setCurrentSessionIdState] = useState(() => {
         return localStorage.getItem('aiTutorSessionId') || null;
@@ -31,7 +32,7 @@ export const AppStateProvider = ({ children }) => {
         localStorage.getItem('aiTutorSystemPrompt') || defaultSystemPromptText
     );
 
-    const [selectedDocumentForAnalysis, setSelectedDocumentForAnalysisState] = useState(null);
+    const [selectedDocuments, setSelectedDocumentsState] = useState([]);
     const [selectedSubject, setSelectedSubjectState] = useState(
         localStorage.getItem('aiTutorSelectedSubject') || null
     );
@@ -52,9 +53,9 @@ export const AppStateProvider = ({ children }) => {
     };
 
     const switchLLM = (llm) => {
-         setSelectedLLM(llm);
-         localStorage.setItem('selectedLLM', llm);
-         console.log("AppStateContext: Switched LLM to:", llm);
+        setSelectedLLM(llm);
+        localStorage.setItem('selectedLLM', llm);
+        console.log("AppStateContext: Switched LLM to:", llm);
     };
 
     const setSessionId = (sessionId) => {
@@ -63,11 +64,11 @@ export const AppStateProvider = ({ children }) => {
         } else {
             console.log("AppStateContext: Clearing session and related context (logout).");
             localStorage.removeItem('aiTutorSessionId');
-            
-            localStorage.removeItem('aiTutorSelectedSubject'); 
+
+            localStorage.removeItem('aiTutorSelectedSubject');
             setSelectedSubjectState(null);
-            
-            setSelectedDocumentForAnalysisState(null);
+
+            setSelectedDocumentsState([]);
         }
         setCurrentSessionIdState(sessionId);
         console.log("AppStateContext: Regular user session ID updated to:", sessionId);
@@ -78,16 +79,15 @@ export const AppStateProvider = ({ children }) => {
         localStorage.setItem('aiTutorSystemPrompt', promptText);
     };
 
-    const selectDocumentForAnalysis = (documentFilename) => {
-        setSelectedDocumentForAnalysisState(documentFilename);
-        console.log("AppStateContext: Document for analysis tools set to:", documentFilename || "None");
-        if (documentFilename && selectedSubject !== documentFilename) {
-            if (selectedSubject !== null) {
-                console.log("AppStateContext: Clearing selected subject because a specific user document was chosen for analysis tools.");
-                setSelectedSubjectState(null);
-                localStorage.removeItem('aiTutorSelectedSubject');
+    const toggleDocumentSelection = (documentFilename) => {
+        setSelectedDocumentsState(prev => {
+            if (prev.includes(documentFilename)) {
+                return prev.filter(f => f !== documentFilename);
+            } else {
+                return [...prev, documentFilename];
             }
-        }
+        });
+        console.log("AppStateContext: Toggled document selection:", documentFilename);
     };
 
     const setSelectedSubject = (subjectName) => {
@@ -102,11 +102,11 @@ export const AppStateProvider = ({ children }) => {
 
         setSelectedDocumentForAnalysisState(newSubject);
         if (newSubject) {
-             console.log("AppStateContext: Also set document for analysis tools to (admin subject):", newSubject);
+            console.log("AppStateContext: Also set document for analysis tools to (admin subject):", newSubject);
         } else {
             if (selectedDocumentForAnalysis === subjectName) {
-                 setSelectedDocumentForAnalysisState(null);
-                 console.log("AppStateContext: Cleared document for analysis tools as linked subject was cleared.");
+                setSelectedDocumentForAnalysisState(null);
+                console.log("AppStateContext: Cleared document for analysis tools as linked subject was cleared.");
             }
         }
     };
@@ -114,7 +114,7 @@ export const AppStateProvider = ({ children }) => {
     const setIsAdminSessionActive = (isActive) => {
         if (isActive) {
             sessionStorage.setItem('isAdminSessionActive', 'true');
-            setSessionId(null); 
+            setSessionId(null);
         } else {
             sessionStorage.removeItem('isAdminSessionActive');
         }
@@ -136,9 +136,10 @@ export const AppStateProvider = ({ children }) => {
             selectedLLM, switchLLM,
             isLeftPanelOpen, setIsLeftPanelOpen,
             isRightPanelOpen, setIsRightPanelOpen,
+            rightPanelMode, setRightPanelMode,
             currentSessionId, setSessionId,
             systemPrompt, setSystemPrompt,
-            selectedDocumentForAnalysis, selectDocumentForAnalysis,
+            selectedDocuments, toggleDocumentSelection,
             selectedSubject, setSelectedSubject,
             isAdminSessionActive, setIsAdminSessionActive,
             initialPromptForNewSession, setInitialPromptForNewSession,

@@ -14,17 +14,17 @@ import toast from 'react-hot-toast';
 import api from '../../services/api.js';
 
 const PROMPT_PRESETS = [
-     { id: 'friendly_tutor', name: 'Friendly Tutor', icon: Bot, text: "You are a friendly, patient, and encouraging tutor specializing in engineering and scientific topics for PhD students. Explain concepts clearly, break down complex ideas, use analogies, and offer positive reinforcement. Ask follow-up questions to ensure understanding." },
-     { id: 'concept_explorer', name: 'Concept Explorer', icon: BookOpen, text: "You are an expert academic lecturer introducing a new, complex engineering or scientific concept. Your goal is to provide a deep, structured explanation. Define terms rigorously, outline the theory, provide relevant mathematical formulations (using Markdown), illustrative examples, and discuss applications or limitations pertinent to PhD-level research." },
-     { id: 'knowledge_check', name: 'Knowledge Check', icon: Lightbulb, text: "You are assessing understanding of engineering/scientific topics. Ask targeted questions to test knowledge, identify misconceptions, and provide feedback on the answers. Start by asking the user what topic they want to be quizzed on." },
-     { id: 'custom', name: 'Custom Prompt', icon: Settings2, text: "You are a helpful AI engineering tutor." }
+    { id: 'friendly_tutor', name: 'Friendly Tutor', icon: Bot, text: "You are a friendly, patient, and encouraging tutor specializing in engineering and scientific topics for PhD students. Explain concepts clearly, break down complex ideas, use analogies, and offer positive reinforcement. Ask follow-up questions to ensure understanding." },
+    { id: 'concept_explorer', name: 'Concept Explorer', icon: BookOpen, text: "You are an expert academic lecturer introducing a new, complex engineering or scientific concept. Your goal is to provide a deep, structured explanation. Define terms rigorously, outline the theory, provide relevant mathematical formulations (using Markdown), illustrative examples, and discuss applications or limitations pertinent to PhD-level research." },
+    { id: 'knowledge_check', name: 'Knowledge Check', icon: Lightbulb, text: "You are assessing understanding of engineering/scientific topics. Ask targeted questions to test knowledge, identify misconceptions, and provide feedback on the answers. Start by asking the user what topic they want to be quizzed on." },
+    { id: 'custom', name: 'Custom Prompt', icon: Settings2, text: "You are a helpful AI engineering tutor." }
 ];
 
 function LeftPanel({ isChatProcessing }) {
     const {
         setIsLeftPanelOpen,
         systemPrompt, setSystemPrompt,
-        selectDocumentForAnalysis, selectedDocumentForAnalysis,
+        toggleDocumentSelection, selectedDocuments,
         selectedSubject, setSelectedSubject
     } = useAppState();
 
@@ -101,7 +101,7 @@ function LeftPanel({ isChatProcessing }) {
             setIsSubjectSectionOpen(false);
         }
     };
-    
+
     const sectionVariants = {
         open: {
             height: 'auto',
@@ -138,19 +138,19 @@ function LeftPanel({ isChatProcessing }) {
                 </button>
                 <AnimatePresence initial={false}>
                     {isPromptSectionOpen && (
-                        <motion.div 
-                            key="prompt-section-content" 
+                        <motion.div
+                            key="prompt-section-content"
                             variants={sectionVariants}
                             initial="closed"
                             animate="open"
                             exit="closed"
                             className="mt-2 p-3 bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-md shadow-inner overflow-hidden">
-                             <label htmlFor="prompt-preset-select" className="block text-xs font-medium text-text-muted-light dark:text-text-muted-dark mb-1">Prompt Mode:</label>
-                             <select id="prompt-preset-select" value={selectedPresetId} onChange={handlePresetChange} className="input-field mb-2 text-xs py-1.5">
-                                 {PROMPT_PRESETS.map(preset => (<option key={preset.id} value={preset.id}>{preset.name}</option>))}
-                             </select>
-                             <label htmlFor="system-prompt-area" className="block text-xs font-medium text-text-muted-light dark:text-text-muted-dark mb-1">System Prompt (Editable):</label>
-                             <textarea id="system-prompt-area" value={systemPrompt} onChange={(e) => { setSystemPrompt(e.target.value); setSelectedPresetId('custom'); }} rows="5" className="input-field text-xs custom-scrollbar" placeholder="Enter system prompt..."/>
+                            <label htmlFor="prompt-preset-select" className="block text-xs font-medium text-text-muted-light dark:text-text-muted-dark mb-1">Prompt Mode:</label>
+                            <select id="prompt-preset-select" value={selectedPresetId} onChange={handlePresetChange} className="input-field mb-2 text-xs py-1.5">
+                                {PROMPT_PRESETS.map(preset => (<option key={preset.id} value={preset.id}>{preset.name}</option>))}
+                            </select>
+                            <label htmlFor="system-prompt-area" className="block text-xs font-medium text-text-muted-light dark:text-text-muted-dark mb-1">System Prompt (Editable):</label>
+                            <textarea id="system-prompt-area" value={systemPrompt} onChange={(e) => { setSystemPrompt(e.target.value); setSelectedPresetId('custom'); }} rows="5" className="input-field text-xs custom-scrollbar" placeholder="Enter system prompt..." />
                         </motion.div>
                     )}
                 </AnimatePresence>
@@ -164,20 +164,20 @@ function LeftPanel({ isChatProcessing }) {
                 </button>
                 <AnimatePresence initial={false}>
                     {isSubjectSectionOpen && (
-                        <motion.div 
-                            key="subject-select-content" 
+                        <motion.div
+                            key="subject-select-content"
                             variants={sectionVariants}
                             initial="closed"
                             animate="open"
                             exit="closed"
                             className="mt-2 p-3 bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-md shadow-inner overflow-hidden">
-                           <SubjectList
+                            <SubjectList
                                 subjects={availableSubjects}
                                 selectedSubject={selectedSubject}
                                 onSelectSubject={setSelectedSubject}
                                 isLoading={isLoadingSubjects}
                                 error={subjectFetchError}
-                           />
+                            />
                         </motion.div>
                     )}
                 </AnimatePresence>
@@ -191,19 +191,19 @@ function LeftPanel({ isChatProcessing }) {
                 </button>
                 <AnimatePresence initial={false}>
                     {isKnowledgeBaseOpen && (
-                        <motion.div 
-                            key="knowledge-base-content" 
+                        <motion.div
+                            key="knowledge-base-content"
                             variants={sectionVariants}
                             initial="closed"
                             animate="open"
                             exit="closed"
                             className="flex-grow flex flex-col p-3 bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-md shadow-inner">
-                            <DocumentUpload onSourceAdded={handleSourceAdded}  />
+                            <DocumentUpload onSourceAdded={handleSourceAdded} />
                             <div className="mt-3 flex-grow overflow-y-auto custom-scrollbar">
                                 <KnowledgeSourceList
                                     key={refreshKey}
-                                    onSelectSource={selectDocumentForAnalysis}
-                                    selectedSource={selectedDocumentForAnalysis}
+                                    toggleDocumentSelection={toggleDocumentSelection}
+                                    selectedDocuments={selectedDocuments}
                                     onRefreshNeeded={refreshKey}
                                 />
                             </div>

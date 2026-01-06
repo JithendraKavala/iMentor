@@ -1,97 +1,70 @@
 // frontend/src/components/layout/LeftCollapsedNav.jsx
 import React from 'react';
 import { useAppState } from '../../contexts/AppStateContext.jsx';
-import { Edit3, UploadCloud, FileText, ChevronRight, Settings2 } from 'lucide-react'; // Settings2 for fallback
-import IconButton from '../core/IconButton.jsx'; 
+import { MessageSquare, Database, GraduationCap, Settings, BookOpen } from 'lucide-react';
+import IconButton from '../core/IconButton.jsx';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 
-// Mapping icon names (or IDs) to Lucide components
-const iconMap = {
-    prompt: Edit3,       // Icon for "Custom Prompt"
-    upload: UploadCloud, // Icon for "Upload Document"
-    docs: FileText,      // Icon for "Document List"
-};
-
-function LeftCollapsedNav({ isChatProcessing }) {
+function IconBar({ isChatProcessing, onNewChat }) {
     const { setIsLeftPanelOpen } = useAppState();
+    const navigate = useNavigate();
 
-    // Define the items for the collapsed navigation bar
+    // Define the items for the icon bar
     const navItems = [
-        { 
-            id: 'prompt', 
-            label: 'Custom Prompt', 
-            iconName: 'prompt', // Matches key in iconMap
-            action: () => { 
-                setIsLeftPanelOpen(true); 
-                // TODO: Optionally, also scroll to/focus the prompt section in LeftPanel
-            } 
+        {
+            id: 'chat',
+            label: 'New Chat',
+            icon: MessageSquare,
+            action: () => onNewChat()
         },
-        { 
-            id: 'upload', 
-            label: 'Upload Document', 
-            iconName: 'upload', 
-            action: () => { 
-                setIsLeftPanelOpen(true);
-                // TODO: Optionally, open LeftPanel and focus/highlight upload area
-            } 
+        {
+            id: 'knowledge',
+            label: 'Knowledge Base',
+            icon: Database,
+            action: () => navigate('/tools/knowledge-graph') // Placeholder route
         },
-        { 
-            id: 'docs', 
-            label: 'Document List', 
-            iconName: 'docs', 
-            action: () => { 
-                setIsLeftPanelOpen(true); 
-                // TODO: Optionally, open LeftPanel scrolled to document list
-            } 
+        {
+            id: 'subjects',
+            label: 'Subjects',
+            icon: BookOpen,
+            action: () => navigate('/study-plan')
         },
+        {
+            id: 'admin',
+            label: 'Admin Settings',
+            icon: Settings,
+            action: () => navigate('/admin/dashboard')
+        }
     ];
 
     return (
         <motion.aside
-            key="left-collapsed-nav" // Unique key for AnimatePresence
+            key="left-collapsed-nav"
             initial={{ x: '-100%', opacity: 0 }}
             animate={{ x: '0%', opacity: 1 }}
             exit={{ x: '-100%', opacity: 0 }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            // Styling for the thin vertical bar
-            className={`fixed left-0 top-16 bottom-0 z-30 w-14 sm:w-16 
+            className={`fixed left-0 top-16 bottom-0 z-30 w-16 
                        bg-surface-light dark:bg-surface-dark 
                        border-r border-border-light dark:border-border-dark 
-                       shadow-lg flex flex-col items-center py-3 space-y-2 custom-scrollbar
+                       shadow-sm flex flex-col items-center py-4 space-y-6 custom-scrollbar
                        ${isChatProcessing ? 'processing-overlay' : ''}`}
         >
-            {/* Button to open the full LeftPanel - Placed at the top */}
-            <IconButton 
-                icon={ChevronRight} 
-                onClick={() => setIsLeftPanelOpen(true)} 
-                title="Open Assistant Panel"
-                ariaLabel="Open Assistant Panel"
-                variant="ghost" 
-                size="lg" // Make it prominent
-                className="mb-2 text-text-muted-light dark:text-text-muted-dark hover:text-primary dark:hover:text-primary-light"
-                disabled={isChatProcessing}
-            />
-
-            {/* Icons for different sections of LeftPanel */}
-            {navItems.map(item => {
-                const IconComponent = iconMap[item.iconName] || Settings2; // Fallback icon
-                return (
-                    <IconButton 
-                        key={item.id}
-                        icon={IconComponent}
-                        onClick={item.action} // Action currently just opens the panel
-                        title={item.label}
-                        ariaLabel={item.label}
-                        variant="ghost"
-                        size="md" 
-                        className="text-text-muted-light dark:text-text-muted-dark hover:text-primary dark:hover:text-primary-light"
-                        disabled={isChatProcessing}
-                    />
-                );
-            })}
-            {/* Add a flexible spacer if you want the open button pushed further down from items */}
-            {/* <div className="flex-grow"></div> */}
+            {navItems.map(item => (
+                <IconButton
+                    key={item.id}
+                    icon={item.icon}
+                    onClick={item.action}
+                    title={item.label}
+                    ariaLabel={item.label}
+                    variant="ghost"
+                    size="lg"
+                    className="text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl"
+                    disabled={isChatProcessing}
+                />
+            ))}
         </motion.aside>
     );
 }
-export default LeftCollapsedNav;
+export default IconBar;

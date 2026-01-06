@@ -2,21 +2,26 @@
 import { useAppState } from '../../contexts/AppStateContext.jsx';
 import React, { useState, useEffect, useRef } from 'react';
 import api from '../../services/api.js';
-import { Send, Mic, Plus, Brain, Zap, Globe, BookMarked, Sparkles } from 'lucide-react';
+import { Send, Mic, Plus, Brain, Zap, Globe, BookMarked, Sparkles, Library } from 'lucide-react';
 import { useWebSpeech } from '../../hooks/useWebSpeech';
-import Button from '../core/Button.jsx'; 
+import Button from '../core/Button.jsx';
 import IconButton from '../core/IconButton.jsx';
+import KnowledgeBaseModal from '../documents/KnowledgeBaseModal.jsx';
 import toast from 'react-hot-toast';
 import blueBrain from "./../../assets/blueBrain.svg";
 import { motion, AnimatePresence } from 'framer-motion';
 
-function ChatInput({ 
-    onSendMessage, 
+function ChatInput({
+    onSendMessage,
     isLoading,
     useWebSearch,
     setUseWebSearch,
     useAcademicSearch,
     setUseAcademicSearch,
+    useKnowledgeBase, // NEW
+    setUseKnowledgeBase, // NEW
+    activeTool, // NEW
+    setActiveTool = () => { }, // Default noop
     criticalThinkingEnabled,
     setCriticalThinkingEnabled,
     initialPrompt,
@@ -25,18 +30,39 @@ function ChatInput({
     setCoachModalOpen
 }) {
     const [inputValue, setInputValue] = useState('');
-    const { transcript, listening, isSpeechSupported, startListening, stopListening, resetTranscript } = useWebSpeech();
+    const { transcript, listening, isSpeechSupported, startListening, stopListening, resetTranscript } = useWebSpeech(); // Keep existing hooks
+
+    // Tool Definitions
+    const TOOL_OPTIONS = [
+        { id: 'quiz', label: 'Quiz Generator', icon: Sparkles, color: 'text-amber-500' },
+        { id: 'faq', label: 'FAQ Generator', icon: BookMarked, color: 'text-teal-500' },
+        { id: 'topics', label: 'Key Topic Extractor', icon: Brain, color: 'text-indigo-500' },
+        { id: 'mindmap', label: 'Mind Map Extractor', icon: Zap, color: 'text-purple-500' },
+        { id: 'podcast', label: 'HD Podcast Generator', icon: Mic, color: 'text-rose-500' }
+    ];
+
+    // NEW: Access Right Panel controls (still needed for other tools?)
+    // User wants KB as popup, so we use local state or global modal state.
+    const [isKbModalOpen, setIsKbModalOpen] = useState(false);
+
+    // We might still need global `setRightPanelMode` if we use it for other things, keeping for now.
+    const { setRightPanelMode, setIsRightPanelOpen, rightPanelMode } = useAppState();
+
     const textareaRef = useRef(null);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const menuRef = useRef(null);
 
     const [isCoaching, setIsCoaching] = useState(false);
 
+    // Check if activeTool is passed as prop or needs to be pulled from context.
+    // Based on params list, it's passed as props? 
+    // Yes: onSendMessage, ..., activeTool, setActiveTool are in the function signature now.
+
     const handleRequestPromptCoaching = async () => {
         const trimmedInput = inputValue.trim();
 
         if (!trimmedInput) return;
-        
+
         if (trimmedInput.length < 3) {
             toast("Prompt is too short for coaching. Please provide a bit more detail.", {
                 icon: '❤️',
@@ -44,7 +70,7 @@ function ChatInput({
             });
             return;
         }
-        
+
         if (isCoaching) return;
 
         setIsCoaching(true);
@@ -98,20 +124,20 @@ function ChatInput({
     };
 
     useEffect(() => {
-    if (initialPrompt) {
-        console.log("[ChatInput] Received initial prompt via props:", initialPrompt);
-        setInputValue(initialPrompt); // Set the text in the input box
-        setInitialPromptForNewSession(null); // Clear the global state immediately
-    }
+        if (initialPrompt) {
+            console.log("[ChatInput] Received initial prompt via props:", initialPrompt);
+            setInputValue(initialPrompt); // Set the text in the input box
+            setInitialPromptForNewSession(null); // Clear the global state immediately
+        }
     }, [initialPrompt, setInitialPromptForNewSession]);
 
     useEffect(() => {
         if (transcript) {
             setInputValue(prev => prev + (prev ? " " : "") + transcript);
-            resetTranscript(); 
+            resetTranscript();
         }
     }, [transcript, resetTranscript]);
-    
+
     useEffect(() => {
         if (textareaRef.current) {
             textareaRef.current.style.height = 'auto';
@@ -132,7 +158,7 @@ function ChatInput({
     const handleSubmit = (e) => {
         e.preventDefault();
         if (inputValue.trim() && !isLoading) {
-            onSendMessage(inputValue.trim());
+            onSendMessage(inputValue.trim(), { activeTool });
             setInputValue('');
         }
     };
@@ -143,7 +169,7 @@ function ChatInput({
             handleSubmit(e);
         }
     };
-    
+
     const handleWebSearchToggle = () => {
         const newWebSearchState = !useWebSearch;
         setUseWebSearch(newWebSearchState);
@@ -155,148 +181,201 @@ function ChatInput({
     const handleAcademicSearchToggle = () => {
         const newState = !useAcademicSearch;
         setUseAcademicSearch(newState);
-        if (newState) setUseWebSearch(false);
+        if (newState) { setUseWebSearch(false); setUseKnowledgeBase(false); }
         toast(newState ? "Academic Search enabled." : "Academic Search disabled.", { icon: newState ? "🎓" : "📄" });
+        setIsMenuOpen(false);
+    };
+
+    const handleKnowledgeBaseToggle = () => {
+        const newState = !useKnowledgeBase;
+        setUseKnowledgeBase(newState);
+        if (newState) { setUseWebSearch(false); setUseAcademicSearch(false); }
+        toast(newState ? "Knowledge Base enabled." : "Knowledge Base disabled.", { icon: newState ? "🧠" : "📄" });
         setIsMenuOpen(false);
     };
 
     const icon = criticalThinkingEnabled ? () => <img src={blueBrain} alt="Blue Brain" className="w-5 h-5" /> : Brain;
 
     return (
-        <div className="p-2 sm:p-3 bg-surface-light dark:bg-surface-dark/50 backdrop-blur-sm rounded-b-lg shadow-inner">
-            <form onSubmit={handleSubmit} className="flex items-end gap-2">
-                <div className="relative" ref={menuRef}>
-                    <IconButton
-                        icon={Plus}
-                        title="More Options"
-                        onClick={() => setIsMenuOpen(!isMenuOpen)}
-                        variant="ghost"
-                        size="md" 
-                        className="p-2 text-text-muted-light dark:text-text-muted-dark hover:text-primary"
-                        disabled={isLoading}
-                    />
+        <div className="w-full max-w-3xl mx-auto px-4 pb-6">
+            <div className="relative group rounded-3xl bg-chat-surface-light dark:bg-chat-surface-dark shadow-xl ring-1 ring-black/5 dark:ring-white/10 transition-shadow hover:shadow-2xl">
+
+                {/* Top Actions: Search toggles */}
+                <div className="absolute -top-10 left-0 flex items-center gap-2">
                     <AnimatePresence>
-                    {isMenuOpen && (
-                        <motion.div
-                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                            exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                            className="absolute bottom-full left-0 mb-2 w-56 bg-surface-light dark:bg-surface-dark rounded-lg shadow-xl border border-border-light dark:border-border-dark p-1 z-10"
-                        >
-                            <button
-                                onClick={handleWebSearchToggle}
-                                className={`w-full text-left flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors ${
-                                    useWebSearch
-                                    ? 'bg-primary/10 text-primary dark:bg-primary-dark/20 dark:text-primary-light'
-                                    : 'text-text-light dark:text-text-dark hover:bg-gray-100 dark:hover:bg-gray-700'
-                                }`}
+                        {activeTool && activeTool !== 'none' && (
+                            <motion.span
+                                initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 5 }}
+                                className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 border ${activeTool === 'faq' ? 'bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400 border-amber-100 dark:border-amber-800' :
+                                    activeTool === 'topics' ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400 border-indigo-100 dark:border-indigo-800' :
+                                        activeTool === 'mindmap' ? 'bg-purple-50 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400 border-purple-100 dark:border-purple-800' :
+                                            'bg-rose-50 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400 border-rose-100 dark:border-rose-800' // podcast
+                                    }`}
                             >
-                                <Globe size={16} />
-                                {useWebSearch ? 'Disable Web Search' : 'Enable Web Search'}
-                            </button>
-                            <button
-                                onClick={handleAcademicSearchToggle}
-                                className={`w-full text-left flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors ${
-                                    useAcademicSearch
-                                    ? 'bg-purple-500/10 text-purple-600 dark:bg-purple-400/20 dark:text-purple-300'
-                                    : 'text-text-light dark:text-text-dark hover:bg-gray-100 dark:hover:bg-gray-700'
-                                }`}
+                                {(() => {
+                                    const t = TOOL_OPTIONS.find(opt => opt.id === activeTool);
+                                    const Icon = t?.icon || Zap;
+                                    return <><Icon size={12} /> {t?.label}</>;
+                                })()}
+                            </motion.span>
+                        )}
+                        {useWebSearch && (
+                            <motion.span
+                                initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 5 }}
+                                className="px-3 py-1 rounded-full bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 text-xs font-medium flex items-center gap-1.5 border border-blue-100 dark:border-blue-800"
                             >
-                                <BookMarked size={16} />
-                                {useAcademicSearch ? 'Disable Academic Search' : 'Enable Academic Search'}
-                            </button>
-                             <button
-                                onClick={() => {toast("File attachment coming soon!", { icon: "📎" }); setIsMenuOpen(false);}}
-                                className="w-full text-left flex items-center gap-2 px-3 py-2 text-sm rounded-md text-text-muted-light dark:text-text-muted-dark hover:bg-gray-100 dark:hover:bg-gray-700"
+                                <Globe size={12} /> Web Search On
+                            </motion.span>
+                        )}
+                        {useAcademicSearch && (
+                            <motion.span
+                                initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 5 }}
+                                className="px-3 py-1 rounded-full bg-purple-50 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400 text-xs font-medium flex items-center gap-1.5 border border-purple-100 dark:border-purple-800"
                             >
-                                <Zap size={16} />
-                                Attach File (soon)
-                            </button>
-                        </motion.div>
-                    )}
+                                <BookMarked size={12} /> Scholar Search On
+                            </motion.span>
+                        )}
+                        {useKnowledgeBase && (
+                            <motion.span
+                                initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 5 }}
+                                className="px-3 py-1 rounded-full bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400 text-xs font-medium flex items-center gap-1.5 border border-amber-100 dark:border-amber-800"
+                            >
+                                <Library size={12} /> Knowledge Base On
+                            </motion.span>
+                        )}
                     </AnimatePresence>
                 </div>
-                <textarea
-                    ref={textareaRef}
-                    value={inputValue}
-                    onChange={(e) => setInputValue(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    onPaste={handlePaste}
-                    placeholder={isLoading ? "Waiting for response..." : "Type your message or ask a question..."}
-                    className="input-field flex-1 p-2.5 resize-none min-h-[44px] max-h-32 custom-scrollbar text-sm" 
-                    rows="1"
-                    disabled={isLoading}
-                />
 
-                {isSpeechSupported && (
-                    <IconButton
-                        icon={Mic}
-                        onClick={() => listening ? stopListening() : startListening()}
-                        title={listening ? "Stop listening" : "Start voice input"}
-                        variant={listening ? "danger" : "ghost"} 
-                        size="md"
-                        className={`p-2 ${listening ? 'text-red-500 animate-pulse' : 'text-text-muted-light dark:text-text-muted-dark hover:text-primary'}`}
+                <form onSubmit={handleSubmit} className="flex flex-col p-2">
+                    <textarea
+                        ref={textareaRef}
+                        value={inputValue}
+                        onChange={(e) => setInputValue(e.target.value)}
+                        onKeyDown={handleKeyDown}
+                        onPaste={handlePaste}
+                        placeholder={isLoading ? "Thinking..." : "Ask anything..."}
+                        className="w-full bg-transparent border-0 focus:ring-0 outline-none ring-0 p-3 text-base text-chat-text-light dark:text-chat-text-dark placeholder:text-chat-text-muted-light dark:placeholder:text-chat-text-muted-dark resize-none min-h-[56px] max-h-48 custom-scrollbar"
+                        rows="1"
                         disabled={isLoading}
                     />
-                )}
-                
-                {/* --- NEW BUTTON --- */}
-                <IconButton
-                    icon={Sparkles}
-                    onClick={handleRequestPromptCoaching}
-                    title="Ask Prompt Coach for Improvement"
-                    variant="ghost"
-                    size="md"
-                    className="p-2 text-amber-500 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300"
-                    isLoading={isCoaching}
-                    disabled={isLoading || isCoaching || !inputValue.trim()}
-                />
 
-               <IconButton
-                    icon={icon}
-                    onClick={() => setCriticalThinkingEnabled(!criticalThinkingEnabled)}
-                    title={criticalThinkingEnabled ? "Disable Critical Thinking" : "Enable Critical Thinking"}
-                    variant="ghost"
-                    size="md"
-                    className={`p-2 ${criticalThinkingEnabled ? 'text-purple-500' : 'text-text-muted-light dark:text-text-muted-dark hover:text-primary'}`}
-                    disabled={isLoading}
-                />
+                    <div className="flex items-center justify-between px-2 pb-1 mt-1">
+                        <div className="flex items-center gap-1">
+                            <div className="relative" ref={menuRef}>
+                                <IconButton
+                                    icon={Plus}
+                                    title="Options"
+                                    onClick={() => setIsMenuOpen(!isMenuOpen)}
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 transition-colors"
+                                />
+                                <AnimatePresence>
+                                    {isMenuOpen && (
+                                        <motion.div
+                                            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                                            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                                            className="absolute bottom-full left-0 mb-3 w-56 bg-chat-surface-light dark:bg-chat-surface-dark rounded-xl shadow-2xl shadow-slate-200/50 dark:shadow-black/50 border border-slate-100 dark:border-slate-700 p-1.5 z-20 overflow-hidden"
+                                        >
+                                            <button
+                                                onClick={handleWebSearchToggle}
+                                                type="button"
+                                                className={`w-full text-left flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg transition-colors ${useWebSearch
+                                                    ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
+                                                    : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50'
+                                                    }`}
+                                            >
+                                                <Globe size={16} />
+                                                {useWebSearch ? 'Disable Web Search' : 'Web Search'}
+                                            </button>
 
-                <Button 
-                    type="submit"
-                    variant="primary"
-                    size="md" 
-                    className="!p-2.5" 
-                    disabled={isLoading || !inputValue.trim()}
-                    isLoading={isLoading && !!inputValue.trim()} 
-                    title="Send message"
-                >
-                    {(!isLoading || !inputValue.trim()) ? <Send size={20} /> : null}
-                </Button>
-            </form>
-            
-            <div className="flex flex-wrap items-center justify-center mt-2 px-2 text-center h-4 gap-x-4">
-                <AnimatePresence>
-                    {useWebSearch && (
-                        <motion.p
-                            key="web-search-indicator"
-                            initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }}
-                            className="text-xs text-blue-500 dark:text-blue-400 flex items-center gap-1.5 font-medium"
-                        >
-                            <Globe size={12} /> Web Search is ON
-                        </motion.p>
-                    )}
-                    {useAcademicSearch && (
-                        <motion.p
-                            key="academic-search-indicator"
-                            initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }}
-                            className="text-xs text-purple-500 dark:text-purple-400 flex items-center gap-1.5 font-medium"
-                        >
-                            <BookMarked size={12} /> Academic Search is ON
-                        </motion.p>
-                    )}
-                </AnimatePresence>
+                                            <button
+                                                onClick={handleAcademicSearchToggle}
+                                                type="button"
+                                                className={`w-full text-left flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg transition-colors ${useAcademicSearch
+                                                    ? 'bg-purple-50 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400'
+                                                    : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50'
+                                                    }`}
+                                            >
+                                                <BookMarked size={16} />
+                                                {useAcademicSearch ? 'Disable Academic' : 'Academic Search'}
+                                            </button>
+
+                                            <div className="my-1 border-t border-slate-100 dark:border-slate-700/50" />
+
+                                            <p className="px-3 py-1 text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                                                AI Tools
+                                            </p>
+
+                                            {TOOL_OPTIONS.map((tool) => (
+                                                <button
+                                                    key={tool.id}
+                                                    onClick={() => {
+                                                        const newState = activeTool === tool.id ? 'none' : tool.id;
+                                                        setActiveTool(newState);
+                                                        setIsMenuOpen(false);
+                                                        toast(newState !== 'none' ? `${tool.label} active` : `${tool.label} deactivated`, { icon: newState !== 'none' ? '🛠️' : '⚪' });
+                                                    }}
+                                                    type="button"
+                                                    className={`w-full text-left flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg transition-colors ${activeTool === tool.id
+                                                        ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-900/20 dark:text-indigo-400'
+                                                        : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50'
+                                                        }`}
+                                                >
+                                                    <tool.icon size={16} className={activeTool === tool.id ? '' : tool.color} />
+                                                    {tool.label}
+                                                </button>
+                                            ))}
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </div>
+
+                            <IconButton
+                                icon={Library}
+                                title="My Knowledge Base"
+                                onClick={() => setIsKbModalOpen(true)}
+                                variant="ghost"
+                                size="sm"
+                                className={`transition-colors ${isKbModalOpen ? 'text-amber-500 bg-amber-50 dark:bg-amber-900/20' : 'text-slate-400 hover:text-amber-500'}`}
+                                disabled={isLoading}
+                            />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            <IconButton
+                                icon={Sparkles}
+                                onClick={handleRequestPromptCoaching}
+                                title="Improve Prompt"
+                                variant="ghost"
+                                size="sm"
+                                className="text-amber-500 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20"
+                                isLoading={isCoaching}
+                                disabled={isLoading || isCoaching || !inputValue.trim()}
+                            />
+
+                            <Button
+                                type="submit"
+                                variant="primary"
+                                size="sm"
+                                className={`rounded-xl transition-all ${(!isLoading && inputValue.trim()) ? 'bg-chat-action-DEFAULT text-white hover:bg-chat-action-dark' : 'bg-slate-100 text-slate-400 dark:bg-slate-700 dark:text-slate-500 cursor-not-allowed'}`}
+                                disabled={isLoading || !inputValue.trim()}
+                                isLoading={isLoading && !!inputValue.trim()}
+                                title="Send"
+                            >
+                                <Send size={18} />
+                            </Button>
+                        </div>
+                    </div>
+                </form>
             </div>
+
+            <div className="mt-2 text-center text-xs text-chat-text-muted-light dark:text-chat-text-muted-dark">
+                iMentor can make mistakes. Consider checking important information.
+            </div>
+
+            <KnowledgeBaseModal isOpen={isKbModalOpen} onClose={() => setIsKbModalOpen(false)} />
         </div>
     );
 }

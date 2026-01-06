@@ -14,11 +14,36 @@ export default {
   theme: {
     extend: {
       colors: {
-        'primary': { light: '#60a5fa', DEFAULT: '#3b82f6', dark: '#2563eb' },
-        'secondary': { light: '#9ca3af', DEFAULT: '#6b7280', dark: '#4b5563' },
-        'accent': '#2dd4bf',
-        'background-dark': '#0F172A', 'surface-dark': '#1E293B', 'border-dark': '#334155', 'text-dark': '#E2E8F0', 'text-muted-dark': '#94A3B8',
-        'background-light': '#F8FAFC', 'surface-light': '#FFFFFF', 'border-light': '#E2E8F0', 'text-light': '#0F172A', 'text-muted-light': '#64748B',
+        'primary': { light: '#818cf8', DEFAULT: '#6366f1', dark: '#4f46e5' }, // Indigo-500, Indigo-600
+        'secondary': { light: '#9ca3af', DEFAULT: '#6b7280', dark: '#4b5563' }, // Slate-500...
+        'accent': '#a855f7', // Purple-500 (matching landing gradient)
+        'background-dark': '#020617', // Slate-950
+        'surface-dark': '#0f172a',    // Slate-900 (was 800 previously, now darker)
+        'border-dark': '#1e293b',     // Slate-800
+        'text-dark': '#f8fafc',       // Slate-50
+        'text-muted-dark': '#94a3b8', // Slate-400
+        'background-light': '#f8fafc', // Slate-50
+        'surface-light': '#ffffff',    // White
+        'border-light': '#e2e8f0',     // Slate-200
+        'text-light': '#0f172a',       // Slate-900
+        'text-light': '#0f172a',       // Slate-900
+        'text-muted-light': '#64748b', // Slate-500
+
+        // --- CHAT SPECIFIC PALETTE (Scoped) ---
+        'chat': {
+          'bg': { light: '#ffffff', dark: '#212121' },         // Main background (ChatGPT dark gray)
+          'sidebar': { light: '#f9f9f9', dark: '#171717' },    // Darker sidebar
+          'surface': { light: '#ffffff', dark: '#2f2f2f' },    // Input, Cards
+          'hover': { light: '#f3f4f6', dark: '#424242' },     // Hover states
+          'bubble-user': { light: '#f3f4f6', dark: '#2f2f2f' }, // User bubbles
+          'text': { light: '#0f172a', dark: '#ececec' },       // Main text (High contrast)
+          'text-muted': { light: '#6b7280', dark: '#b4b4b4' }, // Secondary text
+          'accent': { light: '#10a37f', DEFAULT: '#10a37f', dark: '#10a37f' }, // OpenAI Green/Teal feel? Or stay Blue?
+          // Let's go with a professional "ChatGPT-like" Black/White/Gray theme, with minimal accent.
+          // Actually, let's keep the Accent as a subtle blue-grey or stick to the user's "New Consistent Palette".
+          // I'll define a unique "Chat Blue" that is cleaner.
+          'action': { light: '#2563eb', DEFAULT: '#3b82f6', dark: '#60a5fa' } // Standard blue, distinct from global Indigo
+        },
       },
       fontFamily: {
         sans: ['"Inter var"', 'Inter', 'system-ui', 'sans-serif'],

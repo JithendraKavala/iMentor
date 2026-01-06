@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 
 const AnalysisSchema = new mongoose.Schema({
     faq: { type: String, default: "" },
+    quiz: { type: String, default: "" },
     topics: { type: String, default: "" },
     mindmap: { type: String, default: "" },
 }, { _id: false });

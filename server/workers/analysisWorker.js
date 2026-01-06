@@ -31,12 +31,12 @@ async function performFullAnalysis(sourceId, textForAnalysis, llmProvider, ollam
             try {
                 console.log(`${logPrefix} Generating ${type}...`);
                 const historyForLLM = [{ role: 'user', parts: [{ text: "Perform the requested analysis based on the system instruction provided." }] }];
-                
-                const llmOptions = { 
+
+                const llmOptions = {
                     apiKey,
                     ollamaUrl,
                     model: ollamaModel,
-                    maxOutputTokens: ollamaService.DEFAULT_MAX_OUTPUT_TOKENS_OLLAMA_KG 
+                    maxOutputTokens: ollamaService.DEFAULT_MAX_OUTPUT_TOKENS_OLLAMA_KG
                 };
 
                 const generatedText = llmProvider === 'ollama'
@@ -59,16 +59,18 @@ async function performFullAnalysis(sourceId, textForAnalysis, llmProvider, ollam
 
         const analysisPromises = [
             generateSingleAnalysis('FAQ', ANALYSIS_PROMPTS.faq.getPrompt(textForAnalysis)),
+            generateSingleAnalysis('Quiz', ANALYSIS_PROMPTS.quiz.getPrompt(textForAnalysis)),
             generateSingleAnalysis('Topics', ANALYSIS_PROMPTS.topics.getPrompt(textForAnalysis)),
             generateSingleAnalysis('Mindmap', ANALYSIS_PROMPTS.mindmap.getPrompt(textForAnalysis))
         ];
         const outcomes = await Promise.all(analysisPromises); // Use Promise.all since we handle errors inside
 
         analysisResults.faq = outcomes[0].content;
-        analysisResults.topics = outcomes[1].content;
-        analysisResults.mindmap = outcomes[2].content;
+        analysisResults.quiz = outcomes[1].content;
+        analysisResults.topics = outcomes[2].content;
+        analysisResults.mindmap = outcomes[3].content;
     }
-    
+
     try {
         // --- THIS IS THE FIX ---
         // The final status is ALWAYS 'completed' if the worker finishes.
@@ -79,6 +81,7 @@ async function performFullAnalysis(sourceId, textForAnalysis, llmProvider, ollam
             {
                 $set: {
                     "analysis.faq": analysisResults.faq,
+                    "analysis.quiz": analysisResults.quiz,
                     "analysis.topics": analysisResults.topics,
                     "analysis.mindmap": analysisResults.mindmap,
                     "status": "completed", // Always set to completed
@@ -105,7 +108,7 @@ async function run() {
         if (!process.env.MONGO_URI || !sourceId) {
             throw new Error("Worker started with incomplete data (MONGO_URI or sourceId missing).");
         }
-        
+
         await connectDB(process.env.MONGO_URI);
         dbConnected = true;
 

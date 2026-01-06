@@ -16,33 +16,33 @@ const Button = ({
     className = '',
     ...props
 }) => {
-    const baseStyles = "font-semibold rounded-lg focus:outline-none focus:ring-2 focus:ring-opacity-75 transition-all duration-150 ease-in-out flex items-center justify-center gap-2";
+    const baseStyles = "font-medium rounded-xl focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2";
 
     const variantStyles = {
-        primary: "bg-primary hover:bg-primary-dark text-white focus:ring-primary",
-        secondary: "bg-secondary hover:bg-secondary-dark text-white focus:ring-secondary",
-        danger: "bg-red-500 hover:bg-red-600 text-white focus:ring-red-500",
-        outline: "border border-primary text-primary hover:bg-primary-light dark:hover:bg-opacity-10 focus:ring-primary",
-        ghost: "text-primary hover:bg-primary-light dark:hover:bg-opacity-10 focus:ring-primary",
+        primary: "bg-slate-900 hover:bg-slate-800 text-white shadow-sm shadow-slate-900/10 focus:ring-slate-900 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 dark:focus:ring-white",
+        secondary: "bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm shadow-indigo-500/20 focus:ring-indigo-600 dark:bg-indigo-500 dark:hover:bg-indigo-400",
+        danger: "bg-rose-500 hover:bg-rose-600 text-white shadow-sm shadow-rose-500/20 focus:ring-rose-500",
+        outline: "border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 focus:ring-slate-500",
+        ghost: "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/50 dark:hover:bg-slate-800/50 focus:ring-slate-500",
     };
 
     const sizeStyles = {
-        sm: "px-3 py-1.5 text-xs",
-        md: "px-4 py-2 text-sm",
-        lg: "px-6 py-3 text-base",
+        sm: "px-3 py-2 text-xs",
+        md: "px-4 py-2.5 text-sm",
+        lg: "px-6 py-3.5 text-base",
     };
 
     const widthStyle = fullWidth ? "w-full" : "";
     const isDisabled = disabled || isLoading;
-    const finalDisabledStyle = isDisabled ? "opacity-60 cursor-not-allowed" : "cursor-pointer";
+    const finalDisabledStyle = isDisabled ? "opacity-60 cursor-not-allowed active:scale-100" : "cursor-pointer";
 
     const spinnerSize = size === 'sm' ? 14 : (size === 'lg' ? 20 : 16);
-    
+
     return (
         <button
             type={type}
             onClick={onClick}
-            disabled={isDisabled} // Use the corrected variable
+            disabled={isDisabled}
             className={`${baseStyles} ${variantStyles[variant]} ${sizeStyles[size]} ${widthStyle} ${finalDisabledStyle} ${className}`}
             {...props}
         >

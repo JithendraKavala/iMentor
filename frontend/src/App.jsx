@@ -8,8 +8,8 @@ import TopNav from './components/layout/TopNav.jsx';
 import LeftPanel from './components/layout/LeftPanel.jsx';
 import CenterPanel from './components/layout/CenterPanel.jsx';
 import RightPanel from './components/layout/RightPanel.jsx';
-import LeftCollapsedNav from './components/layout/LeftCollapsedNav.jsx';
-import RightCollapsedNav from './components/layout/RightCollapsedNav.jsx';
+import Sidebar from './components/layout/Sidebar.jsx';
+
 import ChatHistoryModal from './components/chat/ChatHistoryModal.jsx';
 import AdminDashboardPage from './components/admin/AdminDashboardPage.jsx';
 import AdminProtectedRoute from './components/admin/AdminProtectedRoute.jsx';
@@ -25,6 +25,19 @@ import AcademicIntegrityPage from './components/tools/AcademicIntegrityPage.jsx'
 import LandingPage from './components/landing/LandingPage.jsx';
 import OnboardingFlow from './components/onboarding/OnboardingFlow.jsx';
 import AnalyticsDashboardPage from './components/admin/AnalyticsDashboardPage.jsx';
+import SolutionPage from './components/landing/SolutionPage.jsx';
+import PrivacyPolicy from './components/pages/PrivacyPolicy.jsx';
+import TermsOfService from './components/pages/TermsOfService.jsx';
+import AboutPage from './components/pages/AboutPage.jsx';
+import PricingPage from './components/pages/PricingPage.jsx';
+import BlogPage from './components/pages/BlogPage.jsx';
+import IntegrationsPage from './components/pages/IntegrationsPage.jsx';
+import ChangelogPage from './components/pages/ChangelogPage.jsx';
+import CareersPage from './components/pages/CareersPage.jsx';
+import CommunityPage from './components/pages/CommunityPage.jsx';
+import DocumentationPage from './components/pages/DocumentationPage.jsx';
+import ApiReferencePage from './components/pages/ApiReferencePage.jsx';
+import FeaturesPage from './components/pages/FeaturesPage.jsx';
 
 
 function SessionLoadingModal() {
@@ -49,12 +62,12 @@ function SessionLoadingModal() {
     );
 }
 
-function MainAppLayout({ 
-    orchestratorStatus, 
-    handleNewChat, 
-    isSessionLoading, 
-    messages, 
-    setMessages 
+function MainAppLayout({
+    orchestratorStatus,
+    handleNewChat,
+    isSessionLoading,
+    messages,
+    setMessages
 }) {
     const { user: regularUser, logout: regularUserLogout } = useRegularAuth();
     const {
@@ -69,7 +82,7 @@ function MainAppLayout({
     } = useAppState();
     const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
     const [isChatProcessing, setIsChatProcessing] = useState(false);
-    
+
     const handleChatProcessingStatusChange = (isLoading) => {
         setIsChatProcessing(isLoading);
     };
@@ -88,58 +101,94 @@ function MainAppLayout({
     };
 
     return (
-    <>
-        <AnimatePresence>
-            {isSessionLoading && <SessionLoadingModal />}
-        </AnimatePresence>
+        <>
+            <AnimatePresence>
+                {isSessionLoading && <SessionLoadingModal />}
+            </AnimatePresence>
 
-        <TopNav 
-            user={regularUser} 
-            onLogout={handleRegularUserLogout} 
-            onNewChat={handleNewChat}
-            onHistoryClick={() => setIsHistoryModalOpen(true)} 
-            orchestratorStatus={orchestratorStatus}
-            isChatProcessing={isChatProcessing}
-        />
-        <div className="flex flex-1 overflow-hidden pt-16 bg-background-light dark:bg-background-dark">
-            <AnimatePresence mode="wait">
-                {isLeftPanelOpen ? (
-                    <motion.aside key="left-panel-main" initial={{ x: '-100%' }} animate={{ x: '0%' }} exit={{ x: '-100%' }} transition={{ type: 'spring', stiffness: 300, damping: 30 }} className="w-full md:w-72 lg:w-80 xl:w-96 bg-surface-light dark:bg-surface-dark border-r border-border-light dark:border-border-dark overflow-y-auto p-3 sm:p-4 shadow-lg flex-shrink-0 custom-scrollbar">
-                        <LeftPanel isChatProcessing={isChatProcessing} />
-                    </motion.aside>
-                ) : ( <LeftCollapsedNav isChatProcessing={isChatProcessing} /> )}
-            </AnimatePresence>
-            <main className={`flex-1 flex flex-col overflow-hidden p-1 sm:p-2 md:p-4 transition-all duration-300 ease-in-out ${isLeftPanelOpen ? 'lg:ml-0' : 'lg:ml-16 md:ml-14'} ${isRightPanelOpen ? 'lg:mr-0' : 'lg:mr-16 md:mr-14'}`}>
-                <CenterPanel 
-                    messages={messages} 
-                    setMessages={setMessages} 
-                    currentSessionId={currentSessionId}
-                    onChatProcessingChange={handleChatProcessingStatusChange}
-                    initialPromptForNewSession={initialPromptForNewSession}
-                    setInitialPromptForNewSession={setInitialPromptForNewSession}
-                    initialActivityForNewSession={initialActivityForNewSession}
-                    setInitialActivityForNewSession={setInitialActivityForNewSession}
+            <div className="md:hidden">
+                <TopNav
+                    user={regularUser}
+                    onLogout={handleRegularUserLogout}
+                    onNewChat={handleNewChat}
+                    onHistoryClick={() => setIsHistoryModalOpen(true)}
+                    orchestratorStatus={orchestratorStatus}
+                    isChatProcessing={isChatProcessing}
                 />
-            </main>
-            <AnimatePresence mode="wait">
-                {isRightPanelOpen ? (
-                    <motion.aside key="right-panel-main" initial={{ x: '100%' }} animate={{ x: '0%' }} exit={{ x: '100%' }} transition={{ type: 'spring', stiffness: 300, damping: 30 }} className="hidden md:flex md:flex-col md:w-72 lg:w-80 xl:w-96 bg-surface-light dark:bg-surface-dark border-l border-border-light dark:border-border-dark overflow-y-auto p-3 sm:p-4 shadow-lg flex-shrink-0 custom-scrollbar">
-                        <RightPanel isChatProcessing={isChatProcessing} /> {/* Pass the prop */}
-                    </motion.aside>
-                ) : ( <RightCollapsedNav isChatProcessing={isChatProcessing} /> )} {/* Pass the prop */}
-            </AnimatePresence>
-        </div>
-        <ChatHistoryModal isOpen={isHistoryModalOpen} onClose={() => setIsHistoryModalOpen(false)} onSelectSession={handleSelectSessionFromHistory} />
-    </>
+            </div>
+
+            <div className="flex flex-1 overflow-hidden h-full bg-background-light dark:bg-background-dark text-slate-900 dark:text-gray-100">
+                {/* Desktop Sidebar */}
+                <div className="hidden md:block h-full">
+                    <Sidebar
+                        authUser={regularUser}
+                        onLogout={handleRegularUserLogout}
+                        onSelectSession={handleSelectSessionFromHistory}
+                    />
+                </div>
+
+                {/* Mobile Drawer (reusing LeftPanel for mobile if needed, or just Sidebar in drawer) */}
+                <AnimatePresence>
+                    {isLeftPanelOpen && (
+                        <motion.aside
+                            initial={{ x: '-100%' }}
+                            animate={{ x: '0%' }}
+                            exit={{ x: '-100%' }}
+                            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                            className="absolute inset-y-0 left-0 z-50 w-72 md:hidden bg-surface-light dark:bg-gray-900 shadow-2xl"
+                        >
+                            <Sidebar
+                                authUser={regularUser}
+                                onLogout={handleRegularUserLogout}
+                                onSelectSession={(id) => { handleSelectSessionFromHistory(id); /* Close drawer on mobile selection */ }}
+                            />
+                        </motion.aside>
+                    )}
+                </AnimatePresence>
+
+                <main className="flex-1 flex flex-col overflow-hidden relative w-full">
+                    {/* Mobile Menu Trigger (if TopNav is hidden or we want a refined look) */}
+                    {/* We used TopNav for mobile, so we are good. */}
+
+                    <CenterPanel
+                        messages={messages}
+                        setMessages={setMessages}
+                        currentSessionId={currentSessionId}
+                        onChatProcessingChange={handleChatProcessingStatusChange}
+                        initialPromptForNewSession={initialPromptForNewSession}
+                        setInitialPromptForNewSession={setInitialPromptForNewSession}
+                        initialActivityForNewSession={initialActivityForNewSession}
+                        setInitialActivityForNewSession={setInitialActivityForNewSession}
+                    />
+                </main>
+
+                <AnimatePresence mode="wait">
+                    {/* Right Panel - Contextual Only */}
+                    {isRightPanelOpen && (
+                        <motion.aside
+                            key="right-panel-main"
+                            initial={{ width: 0, opacity: 0 }}
+                            animate={{ width: 320, opacity: 1 }}
+                            exit={{ width: 0, opacity: 0 }}
+                            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                            className="hidden lg:flex lg:flex-col bg-surface-light dark:bg-surface-dark border-l border-border-light dark:border-border-dark overflow-y-auto shadow-lg flex-shrink-0 custom-scrollbar"
+                        >
+                            <RightPanel isChatProcessing={isChatProcessing} />
+                        </motion.aside>
+                    )}
+                </AnimatePresence>
+            </div>
+            <ChatHistoryModal isOpen={isHistoryModalOpen} onClose={() => setIsHistoryModalOpen(false)} onSelectSession={handleSelectSessionFromHistory} />
+        </>
     );
 }
 
 function App() {
     const { token: regularUserToken, user: regularUser, loading: regularUserAuthLoading, setUser: setRegularUserInAuthContext } = useRegularAuth();
-    const { 
-        theme, 
-        setSessionId: setGlobalSessionId, 
-        currentSessionId, 
+    const {
+        theme,
+        setSessionId: setGlobalSessionId,
+        currentSessionId,
         isAdminSessionActive,
         setIsAdminSessionActive,
     } = useAppState();
@@ -164,10 +213,10 @@ function App() {
             if (actualCallback) currentSessionId(currentSessionId);
             return;
         }
-        
+
         setIsSessionLoading(true);
         try {
-            const data = await api.startNewSession(currentSessionId, skipSessionAnalysis); 
+            const data = await api.startNewSession(currentSessionId, skipSessionAnalysis);
             if (data && data.newSessionId) {
                 setGlobalSessionId(data.newSessionId);
                 if (data.studyPlanSuggestion) {
@@ -186,7 +235,7 @@ function App() {
                                     <p className="mt-1 text-sm text-text-muted-light dark:text-text-muted-dark">{reason}</p>
                                     <div className="mt-4 flex gap-2">
                                         <Button size="sm" onClick={() => { navigate('/study-plan', { state: { prefilledGoal: topic } }); toast.dismiss(t.id); }}>
-                                                                                        Create Plan for "{topic}"
+                                            Create Plan for "{topic}"
                                         </Button>
                                         <Button size="sm" variant="secondary" onClick={() => toast.dismiss(t.id)}>Dismiss</Button>
                                     </div>
@@ -197,7 +246,7 @@ function App() {
                 }
                 if (actualCallback) {
                     if (!skipSessionAnalysis) {
-                         toast.success("New chat started!"); 
+                        toast.success("New chat started!");
                     }
                     actualCallback(data.newSessionId);
                 } else if (!skipSessionAnalysis) {
@@ -215,7 +264,7 @@ function App() {
             setIsSessionLoading(false);
         }
     }, [currentSessionId, setGlobalSessionId, navigate, appStateMessages]);
-    
+
     const fetchChatHistory = useCallback(async (sid) => {
         if (!sid || !regularUserToken) {
             setAppStateMessages([]);
@@ -245,7 +294,7 @@ function App() {
 
     useEffect(() => { document.documentElement.className = theme; }, [theme]);
     useEffect(() => { api.getOrchestratorStatus().then(setOrchestratorStatus); }, []);
-    
+
     useEffect(() => {
         const handleAuthAndSession = async () => {
             if (isAdminSessionActive) {
@@ -257,7 +306,7 @@ function App() {
                 setAppInitializing(true); return;
             }
             setAppInitializing(false);
-            
+
             if (regularUserToken && regularUser) {
                 if (regularUser.hasCompletedOnboarding === false) {
                     setIsAwaitingOnboarding(true);
@@ -273,16 +322,16 @@ function App() {
                 const shouldCreateSession = !currentSessionId && !location.pathname.startsWith('/tools') && !location.pathname.startsWith('/study-plan');
                 if (shouldCreateSession && !isCreatingSession) {
                     setIsCreatingSession(true);
-                    await handleNewChat(() => {}, true, true);
+                    await handleNewChat(() => { }, true, true);
                     setIsCreatingSession(false);
                 }
             } else {
-                 document.body.classList.add('landing-page-body');
+                document.body.classList.add('landing-page-body');
             }
         };
         handleAuthAndSession();
     }, [
-        regularUserAuthLoading, regularUserToken, regularUser, isAdminSessionActive, 
+        regularUserAuthLoading, regularUserToken, regularUser, isAdminSessionActive,
         currentSessionId, navigate, location.pathname, handleNewChat, isCreatingSession, isAwaitingOnboarding
     ]);
 
@@ -306,7 +355,7 @@ function App() {
             }
         }
     };
-    
+
     const handleOnboardingComplete = () => {
         if (regularUser) {
             setRegularUserInAuthContext({ ...regularUser, hasCompletedOnboarding: true });
@@ -326,48 +375,92 @@ function App() {
             </div>
         );
     }
-    
+
     return (
         <div className="flex flex-col h-screen overflow-hidden font-sans">
             <AnimatePresence>
                 {showAuthModal && (
-                    <AuthModal 
-                        isOpen={showAuthModal} 
+                    <AuthModal
+                        isOpen={showAuthModal}
                         onClose={handleAuthSuccess}
                         initialViewIsLogin={isLoginViewInModal}
                     />
                 )}
-                {isAwaitingOnboarding && 
+                {isAwaitingOnboarding &&
                     <OnboardingFlow onComplete={handleOnboardingComplete} />
                 }
             </AnimatePresence>
-            {/* --- THIS IS THE FIX (Part 2): Restructured Routing --- */}
+            {/* Public Pages shared across states (or accessible when logged out) */}
             <Routes>
+                {/* Admin Routes */}
                 {isAdminSessionActive ? (
                     <>
                         <Route path="/admin/dashboard" element={<AdminProtectedRoute><AdminDashboardPage /></AdminProtectedRoute>} />
                         <Route path="/admin/analytics" element={<AdminProtectedRoute><AnalyticsDashboardPage /></AdminProtectedRoute>} />
+                        {/* Allow Admins to see public pages? Maybe not strictly necessary but good practice */}
+                        <Route path="/privacy" element={<PrivacyPolicy onLoginClick={openAuthModal} />} />
+                        <Route path="/terms" element={<TermsOfService onLoginClick={openAuthModal} />} />
                         <Route path="/*" element={<Navigate to="/admin/dashboard" replace />} />
                     </>
                 ) : regularUserToken && regularUser ? (
+                    /* Authenticated User Routes */
                     <>
                         <Route path="/tools/code-executor" element={<CodeExecutorPage />} />
                         <Route path="/study-plan" element={<StudyPlanPage handleNewChat={handleNewChat} />} />
                         <Route path="/tools/quiz-generator" element={<QuizGeneratorPage />} />
                         <Route path="/tools/integrity-checker" element={<AcademicIntegrityPage />} />
+
+                        {/* Public Footer Pages (Authenticated Users) */}
+                        <Route path="/data/privacy" element={<PrivacyPolicy onLoginClick={openAuthModal} />} /> {/* Legacy mapping if any */}
+                        <Route path="/privacy" element={<PrivacyPolicy onLoginClick={openAuthModal} />} />
+                        <Route path="/terms" element={<TermsOfService onLoginClick={openAuthModal} />} />
+                        <Route path="/legal" element={<TermsOfService onLoginClick={openAuthModal} />} />
+                        <Route path="/about" element={<AboutPage onLoginClick={openAuthModal} />} />
+                        <Route path="/pricing" element={<PricingPage onLoginClick={openAuthModal} />} />
+                        <Route path="/blog" element={<BlogPage onLoginClick={openAuthModal} />} />
+                        <Route path="/integrations" element={<IntegrationsPage onLoginClick={openAuthModal} />} />
+                        <Route path="/changelog" element={<ChangelogPage onLoginClick={openAuthModal} />} />
+                        <Route path="/careers" element={<CareersPage onLoginClick={openAuthModal} />} />
+                        <Route path="/community" element={<CommunityPage onLoginClick={openAuthModal} />} />
+                        <Route path="/docs" element={<DocumentationPage onLoginClick={openAuthModal} />} />
+                        <Route path="/documentation" element={<DocumentationPage onLoginClick={openAuthModal} />} />
+                        <Route path="/api" element={<ApiReferencePage onLoginClick={openAuthModal} />} />
+                        <Route path="/api-reference" element={<ApiReferencePage onLoginClick={openAuthModal} />} />
+                        <Route path="/features" element={<FeaturesPage onLoginClick={openAuthModal} />} />
+                        <Route path="/solutions/:id" element={<SolutionPage onLoginClick={openAuthModal} />} />
+
                         <Route path="/admin/dashboard" element={<Navigate to="/" replace />} />
                         <Route path="/*" element={
-                            <MainAppLayout 
-                                orchestratorStatus={orchestratorStatus} 
-                                handleNewChat={handleNewChat} 
+                            <MainAppLayout
+                                orchestratorStatus={orchestratorStatus}
+                                handleNewChat={handleNewChat}
                                 isSessionLoading={isSessionLoading}
                                 messages={appStateMessages}
                                 setMessages={setAppStateMessages}
-                              />
+                            />
                         } />
                     </>
                 ) : (
-                    <Route path="/*" element={<LandingPage onLoginClick={openAuthModal} />} />
+                    /* Unauthenticated Routes */
+                    <>
+                        <Route path="/solutions/:id" element={<SolutionPage onLoginClick={openAuthModal} />} />
+                        <Route path="/privacy" element={<PrivacyPolicy onLoginClick={openAuthModal} />} />
+                        <Route path="/terms" element={<TermsOfService onLoginClick={openAuthModal} />} />
+                        <Route path="/legal" element={<TermsOfService onLoginClick={openAuthModal} />} />
+                        <Route path="/about" element={<AboutPage onLoginClick={openAuthModal} />} />
+                        <Route path="/pricing" element={<PricingPage onLoginClick={openAuthModal} />} />
+                        <Route path="/blog" element={<BlogPage onLoginClick={openAuthModal} />} />
+                        <Route path="/integrations" element={<IntegrationsPage onLoginClick={openAuthModal} />} />
+                        <Route path="/changelog" element={<ChangelogPage onLoginClick={openAuthModal} />} />
+                        <Route path="/careers" element={<CareersPage onLoginClick={openAuthModal} />} />
+                        <Route path="/community" element={<CommunityPage onLoginClick={openAuthModal} />} />
+                        <Route path="/docs" element={<DocumentationPage onLoginClick={openAuthModal} />} />
+                        <Route path="/documentation" element={<DocumentationPage onLoginClick={openAuthModal} />} />
+                        <Route path="/api" element={<ApiReferencePage onLoginClick={openAuthModal} />} />
+                        <Route path="/api-reference" element={<ApiReferencePage onLoginClick={openAuthModal} />} />
+                        <Route path="/features" element={<FeaturesPage onLoginClick={openAuthModal} />} />
+                        <Route path="/*" element={<LandingPage onLoginClick={openAuthModal} />} />
+                    </>
                 )}
             </Routes>
         </div>

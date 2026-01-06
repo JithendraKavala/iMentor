@@ -1,0 +1,107 @@
+{
+  "timestamp": 1766741362354,
+  "summary": {
+    "uptime": {
+      "milliseconds": 120004,
+      "hours": 0.033334444444444444,
+      "formatted": "2m 0s"
+    },
+    "requests": {
+      "total": 0,
+      "successful": 0,
+      "failed": 0,
+      "successRate": 0,
+      "averageResponseTime": 0,
+      "requestsPerHour": 0
+    },
+    "routing": {
+      "total": 0,
+      "successful": 0,
+      "fallback": 0,
+      "errors": 0,
+      "successRate": 0,
+      "averageRoutingTime": 0
+    },
+    "classification": {
+      "total": 0,
+      "accurate": 0,
+      "accuracy": 0,
+      "averageConfidence": 0
+    },
+    "models": [],
+    "system": {
+      "memoryUsage": 52.475685119628906,
+      "cpuUsage": 1.16,
+      "peakMemoryUsage": 52.474403381347656,
+      "requestsPerMinute": 0
+    }
+  },
+  "detailed": {
+    "system": {
+      "startTime": 1766741242350,
+      "totalRequests": 0,
+      "successfulRequests": 0,
+      "failedRequests": 0,
+      "averageResponseTime": 0,
+      "peakMemoryUsage": 55023400,
+      "peakCpuUsage": 0
+    },
+    "models": {},
+    "routing": {
+      "totalRoutes": 0,
+      "successfulRoutes": 0,
+      "fallbackRoutes": 0,
+      "routingErrors": 0,
+      "subjectDistribution": {},
+      "averageRoutingTime": 0
+    },
+    "classification": {
+      "totalClassifications": 0,
+      "accurateClassifications": 0,
+      "averageConfidence": 0,
+      "subjectAccuracy": {}
+    },
+    "performance": {
+      "responseTimeHistory": [],
+      "memoryUsageHistory": [
+        {
+          "timestamp": 1766741302353,
+          "heapUsed": 53688776,
+          "heapTotal": 56160256,
+          "external": 22395196,
+          "rss": 115515392
+        },
+        {
+          "timestamp": 1766741362353,
+          "heapUsed": 55023400,
+          "heapTotal": 57733120,
+          "external": 22476148,
+          "rss": 118181888
+        }
+      ],
+      "cpuUsageHistory": [
+        {
+          "timestamp": 1766741302353,
+          "user": 3537877,
+          "system": 435324
+        },
+        {
+          "timestamp": 1766741362353,
+          "user": 4085879,
+          "system": 514484
+        }
+      ],
+      "errorRateHistory": []
+    },
+    "realtime": {
+      "currentRequests": 0,
+      "requestsPerMinute": 0,
+      "averageResponseTime": 0,
+      "errorRate": 0,
+      "memoryUsage": 52.475685119628906,
+      "cpuUsage": 1.16
+    },
+    "uptime": 120004,
+    "timestamp": 1766741362354
+  }
+}

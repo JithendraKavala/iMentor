@@ -41,7 +41,16 @@ try:
     import document_generator
     import podcast_generator
     import google.generativeai as genai
-    from prompts import CODE_ANALYSIS_PROMPT_TEMPLATE, TEST_CASE_GENERATION_PROMPT_TEMPLATE, EXPLAIN_ERROR_PROMPT_TEMPLATE, QUIZ_GENERATION_PROMPT_TEMPLATE
+    from prompts import (
+        CODE_ANALYSIS_PROMPT_TEMPLATE,
+        TEST_CASE_GENERATION_PROMPT_TEMPLATE,
+        EXPLAIN_ERROR_PROMPT_TEMPLATE,
+        QUIZ_GENERATION_PROMPT_TEMPLATE,
+        QUIZ_GENERATION_FROM_TOPIC_PROMPT_TEMPLATE,
+        REAL_FAQ_GENERATION_PROMPT_TEMPLATE,
+        TOPIC_EXTRACTION_PROMPT_TEMPLATE,
+        MINDMAP_GENERATION_PROMPT_TEMPLATE
+    )
     import quiz_utils
     from academic_search import search_all_apis as academic_search
     from integrity_services import submit_to_turnitin, get_turnitin_report, check_bias_hybrid, calculate_readability
@@ -61,9 +70,36 @@ try:
         logging.getLogger(__name__).error("GEMINI_API_KEY not found, AI features will fail.")
 
     def llm_wrapper(prompt, api_key=None):
+        if config.LLM_PROVIDER == 'ollama':
+            # Use Ollama
+            try:
+                import requests
+                payload = {
+                    "model": config.OLLAMA_MODEL_NAME,
+                    "prompt": prompt,
+                    "stream": False,
+                    "options": {
+                        "temperature": 0.7,
+                        "num_ctx": 4096
+                    }
+                }
+                logger.info(f"Ollama Request: Model={config.OLLAMA_MODEL_NAME}, URL={config.OLLAMA_BASE_URL}/api/generate")
+                response = requests.post(f"{config.OLLAMA_BASE_URL}/api/generate", json=payload, timeout=120)
+                response.raise_for_status()
+                return response.json().get('response', '')
+            except Exception as e:
+                logger.error(f"Ollama generation failed: {e}")
+                return "" # Return empty string on failure to match existing behavior
+        
+        # Fallback to Gemini Logic if provider is not ollama
         key_to_use = api_key or config.GEMINI_API_KEY
         if not key_to_use:
-            raise ConnectionError("Gemini API Key is not configured for this request.")
+            # If user wanted Gemini but no key, raise error
+            if config.LLM_PROVIDER == 'gemini':
+                raise ConnectionError("Gemini API Key is not configured for this request.")
+            # If just a fallback, maybe return empty? But let's raise to be safe or just log.
+            logger.warning("Gemini Key missing during fallback execution.")
+            return ""
 
         genai.configure(api_key=key_to_use)
         
@@ -882,6 +918,81 @@ def generate_document_from_topic_route():
 # #         "model_tag": model_name_to_update
 # #     }), 202 # 202 Accepted indicates the request is accepted but processing is not complete
 # # # --- END MODIFICATION ---
+
+def clean_json_string(json_str):
+    """Cleans a JSON string by removing markdown code blocks if present."""
+    json_str = json_str.strip()
+    if json_str.startswith("```json"):
+        json_str = json_str[7:]
+    if json_str.startswith("```"):
+        json_str = json_str[3:]
+    if json_str.endswith("```"):
+        json_str = json_str[:-3]
+    return json_str.strip()
+
+
+
+@app.route('/extract_topics', methods=['POST'])
+def extract_topics_route():
+    data = request.get_json()
+    text, api_key = data.get('text'), data.get('api_key')
+    if not text or not api_key: return create_error_response("Missing 'text' or 'api_key'", 400)
+
+    try:
+        prompt = TOPIC_EXTRACTION_PROMPT_TEMPLATE.format(text=text[:30000])
+        response = llm_wrapper(prompt, api_key)
+        cleaned_response = clean_json_string(response)
+        return jsonify(json.loads(cleaned_response)), 200
+    except Exception as e:
+        logger.error(f"Topic Extraction Error: {e}")
+        return create_error_response(str(e), 500)
+
+@app.route('/generate_quiz', methods=['POST'])
+def generate_quiz_from_topic_route():
+    data = request.get_json()
+    text, api_key = data.get('text'), data.get('api_key')
+    if not text or not api_key: return create_error_response("Missing 'text' or 'api_key'", 400)
+
+    try:
+        # Use the "Quiz from Topic" template (formerly FAQ template)
+        prompt = QUIZ_GENERATION_FROM_TOPIC_PROMPT_TEMPLATE.format(text=text[:30000])
+        response = llm_wrapper(prompt, api_key)
+        cleaned_response = clean_json_string(response)
+        return jsonify(json.loads(cleaned_response)), 200
+    except Exception as e:
+        logger.error(f"Quiz Generation Error: {e}")
+        return create_error_response(str(e), 500)
+
+@app.route('/generate_faq', methods=['POST'])
+def generate_faq_route():
+    data = request.get_json()
+    text, api_key = data.get('text'), data.get('api_key')
+    if not text or not api_key: return create_error_response("Missing 'text' or 'api_key'", 400)
+
+    try:
+        # Use the NEW Real FAQ template
+        prompt = REAL_FAQ_GENERATION_PROMPT_TEMPLATE.format(text=text[:30000])
+        response = llm_wrapper(prompt, api_key)
+        cleaned_response = clean_json_string(response)
+        return jsonify(json.loads(cleaned_response)), 200
+    except Exception as e:
+        logger.error(f"FAQ Generation Error: {e}")
+        return create_error_response(str(e), 500)
+
+@app.route('/generate_mindmap', methods=['POST'])
+def generate_mindmap_route():
+    data = request.get_json()
+    text, api_key = data.get('text'), data.get('api_key')
+    if not text or not api_key: return create_error_response("Missing 'text' or 'api_key'", 400)
+
+    try:
+        prompt = MINDMAP_GENERATION_PROMPT_TEMPLATE.format(text=text[:30000])
+        response = llm_wrapper(prompt, api_key)
+        cleaned_response = clean_json_string(response)
+        return jsonify(json.loads(cleaned_response)), 200
+    except Exception as e:
+        logger.error(f"Mind Map Generation Error: {e}")
+        return create_error_response(str(e), 500)
 
 if __name__ == '__main__':
     @app.route('/process_media_file', methods=['POST'])

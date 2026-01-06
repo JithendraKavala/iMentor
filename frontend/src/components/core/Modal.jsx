@@ -88,9 +88,9 @@ const Modal = ({
     };
 
     const modalVariants = {
-        hidden: { y: "-30px", opacity: 0, scale: 0.98, transition: { duration: 0.15, ease: "easeIn" } },
-        visible: { y: "0", opacity: 1, scale: 1, transition: { type: "spring", stiffness: 400, damping: 30, duration: 0.3 } },
-        exit: { y: "30px", opacity: 0, scale: 0.98, transition: { duration: 0.2, ease: "easeIn" } }
+        hidden: { y: 20, opacity: 0, scale: 0.96, filter: "blur(4px)", transition: { duration: 0.2, ease: "easeIn" } },
+        visible: { y: 0, opacity: 1, scale: 1, filter: "blur(0px)", transition: { type: "spring", stiffness: 350, damping: 25, duration: 0.4 } },
+        exit: { y: 20, opacity: 0, scale: 0.96, filter: "blur(4px)", transition: { duration: 0.2, ease: "easeIn" } }
     };
 
     if (!isOpen) return null;
@@ -100,7 +100,7 @@ const Modal = ({
             {isOpen && (
                 <motion.div
                     key="modal-backdrop"
-                    className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 dark:bg-black/80 backdrop-blur-sm"
+                    className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 dark:bg-black/70 backdrop-blur-sm"
                     initial="hidden"
                     animate="visible"
                     exit="hidden"
@@ -114,9 +114,9 @@ const Modal = ({
                         key="modal-content-wrapper" // Changed key for potential AnimatePresence behavior
                         ref={modalRef}
                         tabIndex={-1} // Make the modal itself focusable for fallback
-                        className={`bg-surface-light dark:bg-surface-dark rounded-lg shadow-xl w-full ${sizeClasses[size]} flex flex-col overflow-hidden
-                                    ${size === 'full' ? '' : 'max-h-[90vh] sm:max-h-[85vh]'}`} 
-                                    // Apply max-h unless it's 'full' size
+                        className={`bg-white dark:bg-chat-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl shadow-slate-300/50 dark:shadow-black/70 w-full ${sizeClasses[size]} flex flex-col overflow-hidden
+                                    ${size === 'full' ? '' : 'max-h-[90vh] sm:max-h-[85vh]'}`}
+                        // Apply max-h unless it's 'full' size
                         role="document" // The actual dialog content
                         aria-modal="true"
                         aria-labelledby={title ? "modal-title-text" : undefined} // Point to title if exists
@@ -127,18 +127,17 @@ const Modal = ({
                         onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside modal
                     >
                         {/* Modal Header */}
-                        <div className="flex items-center justify-between px-5 py-3.5 border-b border-border-light dark:border-border-dark sticky top-0 bg-surface-light dark:bg-surface-dark z-10 flex-shrink-0">
+                        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 dark:border-white/5 sticky top-0 bg-white dark:bg-chat-surface-dark z-10 flex-shrink-0">
                             {title && (
-                                <h2 id="modal-title-text" className="text-lg font-semibold text-text-light dark:text-text-dark truncate pr-4">
+                                <h2 id="modal-title-text" className="text-xl font-bold text-slate-900 dark:text-white truncate pr-4">
                                     {title}
                                 </h2>
                             )}
                             <button
                                 onClick={onClose}
-                                className="p-1.5 rounded-full text-text-muted-light dark:text-text-muted-dark 
-                                           hover:bg-gray-200/80 dark:hover:bg-gray-700/80 
-                                           hover:text-red-500 dark:hover:text-red-400 
-                                           focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-primary-light focus:ring-offset-1 dark:focus:ring-offset-surface-dark"
+                                className="p-2 rounded-full text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 
+                                           hover:bg-slate-100 dark:hover:bg-white/5
+                                           transition-colors duration-200"
                                 aria-label="Close modal"
                             >
                                 <X size={20} />
@@ -146,13 +145,13 @@ const Modal = ({
                         </div>
 
                         {/* Modal Body */}
-                        <div className="px-5 py-4 overflow-y-auto flex-grow custom-scrollbar">
+                        <div className="px-6 py-6 overflow-y-auto flex-grow custom-scrollbar">
                             {children}
                         </div>
 
                         {/* Modal Footer */}
                         {footerContent && (
-                            <div className="px-5 py-3.5 border-t border-border-light dark:border-border-dark flex justify-end gap-3 sticky bottom-0 bg-surface-light dark:bg-surface-dark z-10 flex-shrink-0">
+                            <div className="px-6 py-5 border-t border-slate-100 dark:border-white/5 flex justify-end gap-3 sticky bottom-0 bg-slate-50 dark:bg-chat-surface-dark z-10 flex-shrink-0">
                                 {footerContent}
                             </div>
                         )}

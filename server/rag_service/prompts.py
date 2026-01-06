@@ -254,3 +254,122 @@ TOPIC:
 
 FINAL PRESENTATION JSON ARRAY:
 """
+
+# ==============================================================================
+# === AI TOOL PROMPTS (FAQ, TOPICS, MINDMAP) ===
+# ==============================================================================
+
+QUIZ_GENERATION_FROM_TOPIC_PROMPT_TEMPLATE = """
+You are an expert educational content creator. Your task is to generate a comprehensive "Test Your Knowledge" quiz based SOLELY on the provided text.
+
+**INSTRUCTIONS:**
+1.  **Analyze the Input:**
+    - If the "SOURCE TEXT" is a short topic or question (e.g., "Python functions", "History of Rome"), use your **internal knowledge** to generate a quiz about that topic.
+    - If the "SOURCE TEXT" is a detailed document or excerpt, generate the quiz based **SOLELY** on that provided text.
+2.  **Generate Questions:** Create 5-10 high-quality multiple-choice questions (MCQs).
+3.  **Provide Options:** For each question, provide 4 distinct options (A, B, C, D). One must be correct, three must be plausible distractors.
+4.  **Format:** Your output MUST be a single, valid JSON array of objects.
+5.  **Schema:**
+    [
+        {
+            "id": 1,
+            "question": "The question text?",
+            "options": ["Option A", "Option B", "Option C", "Option D"],
+            "correctAnswer": "The exact text of the correct option",
+            "explanation": "A short explanation of why this answer is correct."
+        },
+        ...
+    ]
+
+---
+**SOURCE TEXT:**
+{text}
+---
+
+**FINAL QUIZ JSON ARRAY:**
+"""
+
+REAL_FAQ_GENERATION_PROMPT_TEMPLATE = """
+You are an expert technical writer and knowledge organizer. Your task is to generate a comprehensive set of Frequently Asked Questions (FAQ) based on the provided text.
+
+**INSTRUCTIONS:**
+1.  **Analyze the Input:**
+    - If the "SOURCE TEXT" is a topic, use your internal knowledge to identify common questions and answers.
+    - If the "SOURCE TEXT" is a document, extract key information to form valid Q&A pairs.
+2.  **Generate FAQs:** Create 5-10 high-quality Question and Answer pairs.
+3.  **Format:** Your output MUST be a single, valid JSON array of objects.
+4.  **Schema:**
+    [
+        {
+            "question": "What is ...?",
+            "answer": "The answer is ..."
+        },
+        ...
+    ]
+
+---
+**SOURCE TEXT:**
+{text}
+---
+
+**FINAL FAQ JSON ARRAY:**
+"""
+
+TOPIC_EXTRACTION_PROMPT_TEMPLATE = """
+You are an expert in knowledge organization. Your task is to extract the key topics and subtopics from the provided text to create a structured summary.
+
+**INSTRUCTIONS:**
+1.  **Identify Key Topics:** Find the main themes or subjects discussed in the text.
+2.  **Extract Details:** For each topic, provide a brief description or summary of what the text says about it.
+3.  **Format:** Your output MUST be a single, valid JSON array of objects.
+4.  **Schema:**
+    [
+        {{
+            "topic": "Name of the topic",
+            "description": "Brief summary or key takeaways regarding this topic from the text."
+        }},
+        ...
+    ]
+
+---
+**SOURCE TEXT:**
+{text}
+---
+
+**FINAL TOPICS JSON ARRAY:**
+"""
+
+MINDMAP_GENERATION_PROMPT_TEMPLATE = """
+You are an expert in data visualization and knowledge representation. Your task is to generate a hierarchical mind map structure from the provided text.
+
+**INSTRUCTIONS:**
+1.  **Identify the Core Concept:** Determine the central theme of the text (the root node).
+2.  **Determine Branches:** Identify main sub-concepts (level 1 nodes) and their details (level 2 nodes).
+3.  **Format:** Your output MUST be a single, valid JSON object representing the root node and its children.
+4.  **Schema:**
+    {{
+        "id": "root",
+        "label": "Central Theme",
+        "children": [
+            {{
+                "id": "unique_id_1",
+                "label": "Main Sub-concept 1",
+                "children": [
+                    {{
+                        "id": "unique_id_1_1",
+                        "label": "Detail or Sub-point",
+                        "children": []
+                    }}
+                ]
+            }},
+            ...
+        ]
+    }}
+
+---
+**SOURCE TEXT:**
+{text}
+---
+
+**FINAL MIND MAP JSON:**
+"""

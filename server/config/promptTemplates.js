@@ -33,10 +33,37 @@ const ANALYSIS_THINKING_PREFIX_TEMPLATE = `**STEP 1: THINKING PROCESS (Recommend
 `;
 
 const ANALYSIS_PROMPTS = {
-    faq: {
+  quiz: {
     getPrompt: (docTextForLlm) => {
-        let baseTemplate = ANALYSIS_THINKING_PREFIX_TEMPLATE.replace('{doc_text_for_llm}', docTextForLlm);
-        baseTemplate += `
+      let baseTemplate = ANALYSIS_THINKING_PREFIX_TEMPLATE.replace('{doc_text_for_llm}', docTextForLlm);
+      baseTemplate += `
+**TASK:** Generate a multiple-choice "Test Your Knowledge" quiz with 5-10 questions based SOLELY on the provided text.
+
+**OUTPUT FORMAT (Strict):**
+1.  **Format:** A single, valid JSON array of objects.
+2.  **Schema:**
+    [
+        {
+            "id": 1,
+            "question": "The question text?",
+            "options": ["Option A", "Option B", "Option C", "Option D"],
+            "correctAnswer": "The exact text of the correct option",
+            "explanation": "A short explanation of why this answer is correct."
+        },
+        ...
+    ]
+3.  **Content:** Questions must be derived strictly from the text.
+4.  **No Markdown:** Do not wrap the JSON in markdown code blocks. Just return the raw JSON string (after the thinking block).
+
+**BEGIN OUTPUT (Start with \`<thinking>\` or \`[\`):**
+`;
+      return baseTemplate;
+    }
+  },
+  faq: {
+    getPrompt: (docTextForLlm) => {
+      let baseTemplate = ANALYSIS_THINKING_PREFIX_TEMPLATE.replace('{doc_text_for_llm}', docTextForLlm);
+      baseTemplate += `
 **TASK:** Generate a set of 10-15 Frequently Asked Questions (FAQs) with concise answers based ONLY on the provided text. To ensure a logical flow, you MUST organize the FAQs by the main themes found in the document.
 
 **OUTPUT FORMAT (Strict):**
@@ -63,13 +90,13 @@ The first step is to record a 5-minute improvised video of yourself answering th
 
 **BEGIN OUTPUT (Start with '##' for the first theme or \`<thinking>\`):**
 `;
-        return baseTemplate;
+      return baseTemplate;
     }
-    },
-    topics: {
-        getPrompt: (docTextForLlm) => {
-            let baseTemplate = ANALYSIS_THINKING_PREFIX_TEMPLATE.replace('{doc_text_for_llm}', docTextForLlm);
-            baseTemplate += `
+  },
+  topics: {
+    getPrompt: (docTextForLlm) => {
+      let baseTemplate = ANALYSIS_THINKING_PREFIX_TEMPLATE.replace('{doc_text_for_llm}', docTextForLlm);
+      baseTemplate += `
 **TASK:** Identify the 5-7 most important topics or concepts from the provided text. For each topic, provide a clear explanation and include a specific example or key data point from the text to illustrate it.
 
 **OUTPUT FORMAT (Strict):**
@@ -91,14 +118,14 @@ The first step is to record a 5-minute improvised video of yourself answering th
 
 **BEGIN OUTPUT (Start with '###' for the first topic or \`<thinking>\`):**
 `;
-            return baseTemplate;
-        }
-    },
-    mindmap: {
-        getPrompt: (docTextForLlm) => {
-            let baseTemplate = ANALYSIS_THINKING_PREFIX_TEMPLATE.replace('{doc_text_for_llm}', docTextForLlm);
-            // --- THIS IS THE FIX ---
-            baseTemplate += `
+      return baseTemplate;
+    }
+  },
+  mindmap: {
+    getPrompt: (docTextForLlm) => {
+      let baseTemplate = ANALYSIS_THINKING_PREFIX_TEMPLATE.replace('{doc_text_for_llm}', docTextForLlm);
+      // --- THIS IS THE FIX ---
+      baseTemplate += `
 **TASK:** Generate a mind map in Mermaid.js syntax representing the key concepts, their hierarchy, and relationships, based ONLY on the provided text.
 
 **CORE REQUIREMENTS FOR MERMAID SYNTAX:**
@@ -116,10 +143,10 @@ The first step is to record a 5-minute improvised video of yourself answering th
 
 **BEGIN OUTPUT (Start with 'graph TD;', 'mindmap', or \`<thinking>\`):**
 `;
-            // --- END OF FIX ---
-            return baseTemplate;
-        }
+      // --- END OF FIX ---
+      return baseTemplate;
     }
+  }
 };
 
 
@@ -351,7 +378,7 @@ The final answer starts right here...
 `;
 
 const CHAT_MAIN_SYSTEM_PROMPT = () => {
-    return `${CHAT_SYSTEM_PROMPT_CORE_INSTRUCTIONS}\n\n${EXPLICIT_THINKING_OUTPUT_INSTRUCTIONS}`;
+  return `${CHAT_SYSTEM_PROMPT_CORE_INSTRUCTIONS}\n\n${EXPLICIT_THINKING_OUTPUT_INSTRUCTIONS}`;
 };
 
 
@@ -365,26 +392,26 @@ const WEB_SEARCH_CHAT_SYSTEM_PROMPT = `You are a helpful AI research assistant. 
 `;
 
 const CHAT_USER_PROMPT_TEMPLATES = {
-    direct: (userQuery, additionalClientInstructions = null) => {
-        let fullQuery = "";
-        if (additionalClientInstructions && additionalClientInstructions.trim() !== "") {
-            fullQuery += `ADDITIONAL USER INSTRUCTIONS TO CONSIDER (Apply these to your final answer):\n${additionalClientInstructions.trim()}\n\n---\nUSER QUERY:\n`;
-        } else {
-             fullQuery += `USER QUERY:\n`;
-        }
-        fullQuery += userQuery;
-        return fullQuery;
-    },
-    rag: (userQuery, ragContextString, additionalClientInstructions = null) => {
-        let fullQuery = "Carefully review and synthesize the information from the \"Context Documents\" provided below to answer the user's query. Your answer should be primarily based on these documents. Do NOT include any citation markers like [1], [2] etc. in your response text.\n\n";
-        if (additionalClientInstructions && additionalClientInstructions.trim() !== "") {
-            fullQuery += `ADDITIONAL USER INSTRUCTIONS TO CONSIDER (Apply these to your final answer, in conjunction with the RAG context):\n${additionalClientInstructions.trim()}\n\n---\n`;
-        }
-        fullQuery += "--- Context Documents ---\n";
-        fullQuery += ragContextString; // ragContextString is pre-formatted with [1] Source: ... for LLM's internal reference
-        fullQuery += "\n--- End of Context ---\n\nUSER QUERY:\n" + userQuery;
-        return fullQuery;
+  direct: (userQuery, additionalClientInstructions = null) => {
+    let fullQuery = "";
+    if (additionalClientInstructions && additionalClientInstructions.trim() !== "") {
+      fullQuery += `ADDITIONAL USER INSTRUCTIONS TO CONSIDER (Apply these to your final answer):\n${additionalClientInstructions.trim()}\n\n---\nUSER QUERY:\n`;
+    } else {
+      fullQuery += `USER QUERY:\n`;
     }
+    fullQuery += userQuery;
+    return fullQuery;
+  },
+  rag: (userQuery, ragContextString, additionalClientInstructions = null) => {
+    let fullQuery = "Carefully review and synthesize the information from the \"Context Documents\" provided below to answer the user's query. Your answer should be primarily based on these documents. Do NOT include any citation markers like [1], [2] etc. in your response text.\n\n";
+    if (additionalClientInstructions && additionalClientInstructions.trim() !== "") {
+      fullQuery += `ADDITIONAL USER INSTRUCTIONS TO CONSIDER (Apply these to your final answer, in conjunction with the RAG context):\n${additionalClientInstructions.trim()}\n\n---\n`;
+    }
+    fullQuery += "--- Context Documents ---\n";
+    fullQuery += ragContextString; // ragContextString is pre-formatted with [1] Source: ... for LLM's internal reference
+    fullQuery += "\n--- End of Context ---\n\nUSER QUERY:\n" + userQuery;
+    return fullQuery;
+  }
 };
 
 // ==============================================================================
@@ -477,13 +504,13 @@ const createAgenticSystemPrompt = (modelContext, agenticContext, requestContext)
   let activeModeInstructions;
 
   if (requestContext.isWebSearchEnabled) {
-      activeModeInstructions = `**CURRENT MODE: Web Search.** The user has manually enabled web search. Your decision MUST be 'web_search'. This is not optional.`;
+    activeModeInstructions = `**CURRENT MODE: Web Search.** The user has manually enabled web search. Your decision MUST be 'web_search'. This is not optional.`;
   } else if (requestContext.isAcademicSearchEnabled) {
-      activeModeInstructions = `**CURRENT MODE: Academic Search.** The user has manually enabled academic search. Your decision MUST be 'academic_search'. This is not optional.`;
+    activeModeInstructions = `**CURRENT MODE: Academic Search.** The user has manually enabled academic search. Your decision MUST be 'academic_search'. This is not optional.`;
   } else if (requestContext.documentContextName) {
-      activeModeInstructions = `**CURRENT MODE: Document RAG.** A document named "${requestContext.documentContextName}" is pre-selected as the primary context. First, evaluate if the user's query is directly related to the content of this document. If it is, your decision MUST be 'rag_search'. If the query is unrelated to the document (e.g., a general knowledge question, a request for real-time information), you MUST ignore the document and choose a more appropriate tool like 'direct_answer' or 'web_search'.`;
+    activeModeInstructions = `**CURRENT MODE: Document RAG.** A document named "${requestContext.documentContextName}" is pre-selected as the primary context. First, evaluate if the user's query is directly related to the content of this document. If it is, your decision MUST be 'rag_search'. If the query is unrelated to the document (e.g., a general knowledge question, a request for real-time information), you MUST ignore the document and choose a more appropriate tool like 'direct_answer' or 'web_search'.`;
   } else {
-      activeModeInstructions = `**CURRENT MODE: Direct Chat.** No specific tool has been selected. Analyze the user's query to decide. If it requires real-time information or external knowledge, choose 'web_search'. For academic papers or scholarly articles, choose 'academic_search'. For all other general queries, definitions, or explanations, your decision MUST be 'direct_answer'.`;
+    activeModeInstructions = `**CURRENT MODE: Direct Chat.** No specific tool has been selected. Analyze the user's query to decide. If it requires real-time information or external knowledge, choose 'web_search'. For academic papers or scholarly articles, choose 'academic_search'. For all other general queries, definitions, or explanations, your decision MUST be 'direct_answer'.`;
   }
 
   return `
@@ -523,11 +550,11 @@ Provide your JSON decision now.`;
 
 
 const createSynthesizerPrompt = (originalQuery, toolOutput, toolName) => {
-    
-    let synthesizerUserMessage;
 
-    if (toolName === 'web_search') {
-        synthesizerUserMessage = `
+  let synthesizerUserMessage;
+
+  if (toolName === 'web_search') {
+    synthesizerUserMessage = `
 You are an expert AI Research Assistant. Your task is to synthesize the provided "WEB SEARCH RESULTS" into a comprehensive, detailed, and helpful response to the user's query.
 
 Your final response MUST follow this two-part structure precisely:
@@ -557,9 +584,9 @@ ${toolOutput}
 
 **YOUR COMPLETE, FORMATTED RESPONSE:**
 `;
-    } 
-    else if (toolName === 'academic_search') {
-        synthesizerUserMessage = `
+  }
+  else if (toolName === 'academic_search') {
+    synthesizerUserMessage = `
 You are an expert AI Research Assistant. Your entire response MUST begin with your inner monologue in a \`<thinking>\` block, followed by a detailed, multi-part answer.
 
 **YOUR TASK:**
@@ -654,9 +681,9 @@ ${toolOutput}
 
 **YOUR COMPLETE, STRUCTURED RESPONSE:**
 `;
-    }
-    else { // For RAG, KG, Tree of Thought, and other tools
-        synthesizerUserMessage = `
+  }
+  else { // For RAG, KG, Tree of Thought, and other tools
+    synthesizerUserMessage = `
 You are an expert AI Tutor and Synthesizer. You have just completed a multi-step research plan to answer the user's query. The key findings from your research are provided below.
 
 **YOUR FINAL TASK:**
@@ -676,8 +703,8 @@ ${toolOutput}
 
 Provide your final, comprehensive, and well-formatted answer now.
 `;
-    }
-    return synthesizerUserMessage;
+  }
+  return synthesizerUserMessage;
 };
 
 const DOCX_EXPANSION_PROMPT_TEMPLATE = `
@@ -882,25 +909,25 @@ FINAL JSON OUTPUT:
 `;
 
 module.exports = {
-    // Analysis
-    ANALYSIS_PROMPTS,
-    // KG
-    KG_GENERATION_SYSTEM_PROMPT,
-    KG_BATCH_USER_PROMPT_TEMPLATE,
-    // Chat
-    CHAT_MAIN_SYSTEM_PROMPT,
-    WEB_SEARCH_CHAT_SYSTEM_PROMPT,
-    CHAT_USER_PROMPT_TEMPLATES,
-    // ToT
-    PLANNER_PROMPT_TEMPLATE,
-    EVALUATOR_PROMPT_TEMPLATE,
-    // Agentic Framework
-    createAgenticSystemPrompt,
-    createSynthesizerPrompt,
-    // Content Generation
-    DOCX_EXPANSION_PROMPT_TEMPLATE,
-    PPTX_EXPANSION_PROMPT_TEMPLATE,
-    PODCAST_SCRIPT_PROMPT_TEMPLATE,
-    PROMPT_COACH_TEMPLATE,
-    CRITICAL_THINKING_CUE_TEMPLATE
+  // Analysis
+  ANALYSIS_PROMPTS,
+  // KG
+  KG_GENERATION_SYSTEM_PROMPT,
+  KG_BATCH_USER_PROMPT_TEMPLATE,
+  // Chat
+  CHAT_MAIN_SYSTEM_PROMPT,
+  WEB_SEARCH_CHAT_SYSTEM_PROMPT,
+  CHAT_USER_PROMPT_TEMPLATES,
+  // ToT
+  PLANNER_PROMPT_TEMPLATE,
+  EVALUATOR_PROMPT_TEMPLATE,
+  // Agentic Framework
+  createAgenticSystemPrompt,
+  createSynthesizerPrompt,
+  // Content Generation
+  DOCX_EXPANSION_PROMPT_TEMPLATE,
+  PPTX_EXPANSION_PROMPT_TEMPLATE,
+  PODCAST_SCRIPT_PROMPT_TEMPLATE,
+  PROMPT_COACH_TEMPLATE,
+  CRITICAL_THINKING_CUE_TEMPLATE
 };
