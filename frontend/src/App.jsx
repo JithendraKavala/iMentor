@@ -409,7 +409,7 @@ function App() {
                     <>
                         <Route path="/tools/code-executor" element={<ToolLayout><CodeExecutorPage /></ToolLayout>} />
                         <Route path="/tools/files" element={<ToolLayout><FilesHistoryPage /></ToolLayout>} />
-                        <Route path="/study-plan" element={<StudyPlanPage handleNewChat={handleNewChat} />} />
+                        <Route path="/study-plan" element={<ToolLayout><StudyPlanPage handleNewChat={handleNewChat} /></ToolLayout>} />
                         <Route path="/tools/quiz-generator" element={<QuizGeneratorPage />} />
                         <Route path="/tools/integrity-checker" element={<AcademicIntegrityPage />} />
 

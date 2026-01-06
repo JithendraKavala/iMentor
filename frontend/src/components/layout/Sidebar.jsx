@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAppState } from '../../contexts/AppStateContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../../services/api';
 import {
     MessageSquare, Plus, Settings, LogOut, User,
     MoreHorizontal, ChevronRight, Sparkles, Library,
-    Trash2, Cpu, FileText, Share2, Mic, FileCode, Clock // Added FileCode, Clock
+    Trash2, Cpu, FileText, Share2, Mic, FileCode, Clock, GraduationCap // Added FileCode, Clock, GraduationCap
 } from 'lucide-react';
 import LLMSelectionModal from './LLMSelectionModal';
 import ProfileSettingsModal from '../profile/ProfileSettingsModal';
@@ -84,6 +84,7 @@ function Sidebar({ authUser, onLogout, onSelectSession }) {
     } = useAppState();
 
     const navigate = useNavigate();
+    const location = useLocation();
     const [sessions, setSessions] = useState([]);
     const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
@@ -160,17 +161,41 @@ function Sidebar({ authUser, onLogout, onSelectSession }) {
                         <div className="space-y-1">
                             <button
                                 onClick={() => navigate('/tools/code-executor', { state: null })}
-                                className="flex items-center gap-3 w-full px-3 py-2 text-gray-300 hover:bg-white/5 hover:text-white rounded-lg text-sm transition-colors group"
+                                className={`flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm transition-colors group ${location.pathname === '/tools/code-executor' ? 'bg-white/10 text-white' : 'text-gray-300 hover:bg-white/5 hover:text-white'
+                                    }`}
                             >
-                                <FileCode size={16} className="text-gray-500 group-hover:text-white transition-colors" />
+                                <FileCode size={16} className={`${location.pathname === '/tools/code-executor' ? 'text-white' : 'text-gray-500 group-hover:text-white transition-colors'}`} />
                                 <span>New Code File</span>
                             </button>
                             <button
                                 onClick={() => navigate('/tools/files')}
+                                className={`flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm transition-colors group ${location.pathname === '/tools/files' ? 'bg-white/10 text-white' : 'text-gray-300 hover:bg-white/5 hover:text-white'
+                                    }`}
+                            >
+                                <Clock size={16} className={`${location.pathname === '/tools/files' ? 'text-white' : 'text-gray-500 group-hover:text-white transition-colors'}`} />
+                                <span>Files & History</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Study Plan Section */}
+                    <div className="pt-2 pb-1">
+                        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-1 mb-2">Study Plan</h3>
+                        <div className="space-y-1">
+                            <button
+                                onClick={() => navigate('/study-plan', { state: { openCreateModal: true } })}
                                 className="flex items-center gap-3 w-full px-3 py-2 text-gray-300 hover:bg-white/5 hover:text-white rounded-lg text-sm transition-colors group"
                             >
-                                <Clock size={16} className="text-gray-500 group-hover:text-white transition-colors" />
-                                <span>Files & History</span>
+                                <Plus size={16} className="text-gray-500 group-hover:text-white transition-colors" />
+                                <span>New Study Plan</span>
+                            </button>
+                            <button
+                                onClick={() => navigate('/study-plan')}
+                                className={`flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm transition-colors group ${location.pathname === '/study-plan' ? 'bg-white/10 text-white' : 'text-gray-300 hover:bg-white/5 hover:text-white'
+                                    }`}
+                            >
+                                <GraduationCap size={16} className={`${location.pathname === '/study-plan' ? 'text-white' : 'text-gray-500 group-hover:text-white transition-colors'}`} />
+                                <span>My Study Plans</span>
                             </button>
                         </div>
                     </div>
@@ -182,7 +207,7 @@ function Sidebar({ authUser, onLogout, onSelectSession }) {
                     ) : (
                         <GroupedHistory
                             sessions={sessions}
-                            selectedSessionId={currentSessionId}
+                            selectedSessionId={['/', '/c/'].some(path => location.pathname.startsWith(path)) && location.pathname !== '/study-plan' && !location.pathname.startsWith('/tools/') ? currentSessionId : null}
                             onSelect={onSelectSession}
                             onDelete={handleDeleteSession}
                         />
