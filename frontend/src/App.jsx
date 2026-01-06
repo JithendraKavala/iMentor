@@ -14,6 +14,8 @@ import ChatHistoryModal from './components/chat/ChatHistoryModal.jsx';
 import AdminDashboardPage from './components/admin/AdminDashboardPage.jsx';
 import AdminProtectedRoute from './components/admin/AdminProtectedRoute.jsx';
 import CodeExecutorPage from './components/tools/CodeExecutorPage.jsx';
+import FilesHistoryPage from './components/tools/FilesHistoryPage.jsx';
+import ToolLayout from './components/layout/ToolLayout.jsx';
 import StudyPlanPage from './components/learning/StudyPlanPage.jsx';
 import QuizGeneratorPage from './components/tools/QuizGeneratorPage.jsx';
 import api from './services/api.js';
@@ -405,7 +407,8 @@ function App() {
                 ) : regularUserToken && regularUser ? (
                     /* Authenticated User Routes */
                     <>
-                        <Route path="/tools/code-executor" element={<CodeExecutorPage />} />
+                        <Route path="/tools/code-executor" element={<ToolLayout><CodeExecutorPage /></ToolLayout>} />
+                        <Route path="/tools/files" element={<ToolLayout><FilesHistoryPage /></ToolLayout>} />
                         <Route path="/study-plan" element={<StudyPlanPage handleNewChat={handleNewChat} />} />
                         <Route path="/tools/quiz-generator" element={<QuizGeneratorPage />} />
                         <Route path="/tools/integrity-checker" element={<AcademicIntegrityPage />} />

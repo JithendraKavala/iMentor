@@ -5,7 +5,7 @@ import api from '../../services/api';
 import {
     MessageSquare, Plus, Settings, LogOut, User,
     MoreHorizontal, ChevronRight, Sparkles, Library,
-    Trash2, Cpu, FileText, Share2, Mic // Added Share2, Mic
+    Trash2, Cpu, FileText, Share2, Mic, FileCode, Clock // Added FileCode, Clock
 } from 'lucide-react';
 import LLMSelectionModal from './LLMSelectionModal';
 import ProfileSettingsModal from '../profile/ProfileSettingsModal';
@@ -92,6 +92,7 @@ function Sidebar({ authUser, onLogout, onSelectSession }) {
     const [isLLMModalOpen, setIsLLMModalOpen] = useState(false);
     const [isCustomInstructionsOpen, setIsCustomInstructionsOpen] = useState(false);
     const [isSubjectsModalOpen, setIsSubjectsModalOpen] = useState(false);
+
     const [isProfileSettingsOpen, setIsProfileSettingsOpen] = useState(false);
 
     const userMenuRef = useRef(null);
@@ -152,6 +153,27 @@ function Sidebar({ authUser, onLogout, onSelectSession }) {
                         </span>
                         <MessageSquare size={14} className="text-gray-500 group-hover:text-white transition-colors" />
                     </button>
+
+                    {/* Code Execution Section */}
+                    <div className="pt-2 pb-1">
+                        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-1 mb-2">Code Execution</h3>
+                        <div className="space-y-1">
+                            <button
+                                onClick={() => navigate('/tools/code-executor', { state: null })}
+                                className="flex items-center gap-3 w-full px-3 py-2 text-gray-300 hover:bg-white/5 hover:text-white rounded-lg text-sm transition-colors group"
+                            >
+                                <FileCode size={16} className="text-gray-500 group-hover:text-white transition-colors" />
+                                <span>New Code File</span>
+                            </button>
+                            <button
+                                onClick={() => navigate('/tools/files')}
+                                className="flex items-center gap-3 w-full px-3 py-2 text-gray-300 hover:bg-white/5 hover:text-white rounded-lg text-sm transition-colors group"
+                            >
+                                <Clock size={16} className="text-gray-500 group-hover:text-white transition-colors" />
+                                <span>Files & History</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 <div className="flex-1 overflow-y-auto px-2 py-2 custom-scrollbar">
@@ -246,6 +268,7 @@ function Sidebar({ authUser, onLogout, onSelectSession }) {
                     selectedSubject={selectedSubject}
                 />
             </Modal>
+
         </>
     );
 }

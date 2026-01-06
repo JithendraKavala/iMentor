@@ -11,11 +11,25 @@ const CodeEditor = ({ code, setCode, language }) => {
         setCode(value || '');
     };
 
+
+    const getMonacoLanguage = (langName) => {
+        if (!langName) return 'plaintext';
+        const lower = langName.toLowerCase();
+        if (lower.includes('python')) return 'python';
+        if (lower.includes('java') && !lower.includes('script')) return 'java';
+        if (lower.includes('javascript') || lower.includes('node')) return 'javascript';
+        if (lower.includes('cpp') || lower.includes('c++')) return 'cpp';
+        if (lower.includes('c') && !lower.includes('++') && !lower.includes('sharp')) return 'c';
+        if (lower.includes('go')) return 'go';
+        if (lower.includes('ruby')) return 'ruby';
+        return 'plaintext';
+    };
+
     return (
         <div className="h-full w-full border border-border-light dark:border-border-dark rounded-lg overflow-hidden shadow-inner">
             <Editor
                 height="100%"
-                language={language}
+                language={getMonacoLanguage(language)}
                 value={code}
                 onChange={handleEditorChange}
                 theme={theme === 'dark' ? 'vs-dark' : 'light'}

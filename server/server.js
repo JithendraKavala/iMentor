@@ -44,6 +44,7 @@ const learningPathRoutes = require("./routes/learningPath");
 const knowledgeSourceRoutes = require("./routes/knowledgeSource");
 const analyticsRoutes = require('./routes/analytics');
 const feedbackRoutes = require('./routes/feedback');
+const codeRoutes = require('./routes/code');
 const finetuningRoutes = require('./routes/finetuning');
 const { setupAdmin } = require('./scripts/setupAdmin');
 
@@ -107,6 +108,7 @@ app.use("/api/export", exportRoutes);
 app.use("/api/kg", kgRoutes);
 app.use("/api/llm", llmConfigRoutes);
 app.use("/api/tools", toolsRoutes);
+app.use("/api/code", codeRoutes);
 app.use("/api/knowledge-sources", knowledgeSourceRoutes);
 
 // --- SENTRY ERROR HANDLER ---

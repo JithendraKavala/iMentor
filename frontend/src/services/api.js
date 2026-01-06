@@ -213,7 +213,7 @@ const api = {
     return response.data;
   },
   executeCode: async (payload) => {
-    const response = await apiClient.post("/tools/execute", payload);
+    const response = await apiClient.post("/code/execute", payload);
     return response.data;
   },
   analyzeCode: async (payload) => {
@@ -229,6 +229,28 @@ const api = {
   },
   explainError: async (payload) => {
     const response = await apiClient.post("/tools/explain-error", payload);
+    return response.data;
+  },
+  getLanguages: async () => {
+    const response = await apiClient.get("/code/languages");
+    return response.data;
+  },
+  // --- Code Execution & Persistence ---
+  createCodeFile: async (payload) => {
+    const response = await apiClient.post("/code/files", payload);
+    return response.data;
+  },
+  getCodeFiles: async () => {
+    const response = await apiClient.get("/code/files");
+    return response.data;
+  },
+  getCodeFile: async (id) => {
+    const response = await apiClient.get(`/code/files/${id}`);
+    return response.data;
+  },
+  getExecutionHistory: async (fileId = null) => {
+    const params = fileId ? { fileId } : {};
+    const response = await apiClient.get("/code/history", { params });
     return response.data;
   },
   getRecommendations: async (sessionId) => {

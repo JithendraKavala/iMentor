@@ -15,6 +15,7 @@ from werkzeug import utils as werkzeug_utils
 import knowledge_engine
 import media_processor
 import aiohttp
+import requests
 from ddgs import DDGS
 from qdrant_client import models as qdrant_models
 import sentry_sdk
@@ -216,6 +217,17 @@ LANGUAGE_CONFIG = {
 
 # --- (START) Code Executor End Points ---
 
+@app.route('/languages', methods=['GET'])
+def get_languages():
+    try:
+        # Fetch languages directly from Judge0
+        response = requests.get(f"{config.JUDGE0_API_URL}/languages")
+        response.raise_for_status()
+        return jsonify(response.json()), 200
+    except Exception as e:
+        logger.error(f"Failed to fetch languages from Judge0: {e}")
+        return create_error_response("Failed to fetch languages.", 500)
+
 @app.route('/execute_code', methods=['POST'])
 def execute_code():
     data = request.get_json()
@@ -223,95 +235,95 @@ def execute_code():
         return create_error_response("Request must be JSON", 400)
 
     code = data.get('code')
-    language = data.get('language', '').lower()
+    language = data.get('language') # Name e.g. 'python'
+    language_id = data.get('languageId') # ID e.g. 71
     test_cases = data.get('testCases', [])
 
-    if not code or not language:
-        return create_error_response("Missing 'code' or 'language'", 400)
+    if not code:
+        return create_error_response("Missing 'code'", 400)
 
-    lang_config = LANGUAGE_CONFIG.get(language)
-    if not lang_config:
-        unsupported_message = f"Language '{language}' is not currently supported for execution."
-        return jsonify({"compilationError": unsupported_message}), 200
+    # Resolve Language ID
+    if not language_id:
+        # Backup mapping for legacy clients
+        LANG_MAP = {
+            'python': 71, # Python 3.8.1
+            'javascript': 63, # Node.js 12.14.0
+            'java': 62, # Java 13.0.1
+            'cpp': 54, # C++ (GCC 9.2.0)
+            'c': 50, # C (GCC 9.2.0)
+        }
+        if language and language.lower() in LANG_MAP:
+            language_id = LANG_MAP[language.lower()]
+        else:
+            return create_error_response("Missing 'languageId' or unsupported 'language' name.", 400)
 
     results = []
-    temp_dir = tempfile.mkdtemp()
     
-    try:
-        source_path = os.path.join(temp_dir, lang_config["filename"])
-        with open(source_path, 'w', encoding='utf-8') as f:
-            f.write(code)
+    # If no test cases, run once to check output
+    if not test_cases:
+        test_cases = [{"input": "", "expectedOutput": ""}]
 
-        if lang_config["compile_cmd"]:
-            # --- THIS IS THE FIX for FileNotFoundError ---
-            try:
-                compile_process = subprocess.run(
-                    lang_config["compile_cmd"], cwd=temp_dir, capture_output=True,
-                    text=True, timeout=10, encoding='utf-8', check=False
-                )
-            except FileNotFoundError:
-                compiler_name = lang_config["compile_cmd"][0]
-                error_msg = f"Compiler Error: The '{compiler_name}' command was not found. Please ensure the required compiler for '{language}' is installed and that its 'bin' directory is in your system's PATH environment variable."
-                logger.error(error_msg)
-                return jsonify({"compilationError": error_msg}), 200
-            # --- END OF FIX ---
-                
-            if compile_process.returncode != 0:
-                error_output = (compile_process.stdout + "\n" + compile_process.stderr).strip()
-                logger.warning(f"Compilation failed for {language}. Error: {error_output}")
-                return jsonify({"compilationError": error_output}), 200
+    for case in test_cases:
+        case_input = case.get('input', '')
+        expected_output = str(case.get('expectedOutput', '')).strip()
 
-        for i, case in enumerate(test_cases):
-            case_input = case.get('input', '')
-            expected_output = str(case.get('expectedOutput', '')).strip()
+        # Submit to Judge0
+        payload = {
+            "source_code": code,
+            "language_id": language_id,
+            "stdin": case_input,
+            "base64_encoded": False
+        }
+
+        try:
+            # Helper to submit and wait for result
+            # We use wait=true for simplicity. For very long tasks, async polling is better.
+            submit_url = f"{config.JUDGE0_API_URL}/submissions/?base64_encoded=false&wait=true"
+            response = requests.post(submit_url, json=payload, timeout=30)
+            response.raise_for_status()
             
-            case_result = { "input": case_input, "expected": expected_output, "output": "", "error": None, "status": "fail" }
+            judge_result = response.json()
+            
+            # Parse Judge0 Response
+            # Status ID 3 is Accepted. IDs > 3 are errors.
+            status_id = judge_result.get('status', {}).get('id')
+            stdout = (judge_result.get('stdout') or "").strip()
+            stderr = (judge_result.get('stderr') or "").strip()
+            compile_output = (judge_result.get('compile_output') or "").strip()
+            message = (judge_result.get('message') or "").strip() # Runtime errors often here
+            
+            # Construct our consistent result format
+            case_result = {
+                "input": case_input,
+                "expected": expected_output,
+                "output": stdout,
+                "error": None,
+                "status": "pass",
+                "execution_time": judge_result.get('time'),
+                "memory": judge_result.get('memory')
+            }
 
-            try:
-                # --- THIS IS THE FIX ---
-                # Dynamically build the command with an absolute path for compiled languages
-                run_command = lang_config["run_cmd"][:] # Make a copy
-
-                if language in ["c", "cpp"]:
-                    executable_name = run_command[0]
-                    if os.name == 'nt':
-                        executable_name += '.exe'
-                    # Create the full, unambiguous path to the executable
-                    absolute_executable_path = os.path.join(temp_dir, executable_name)
-                    run_command[0] = absolute_executable_path
-                # --- END OF FIX ---
-
-                run_process = subprocess.run(
-                    run_command, # Use the potentially modified command
-                    cwd=temp_dir,
-                    input=case_input,
-                    capture_output=True, text=True, timeout=5, encoding='utf-8'
-                )
-                stdout = run_process.stdout.strip().replace('\r\n', '\n')
-                stderr = run_process.stderr.strip()
-                case_result["output"] = stdout
-
-                if run_process.returncode != 0:
-                    case_result["status"] = "error"
-                    case_result["error"] = stderr or "Script failed with a non-zero exit code."
-                elif stderr:
-                     case_result["error"] = f"Warning (stderr):\n{stderr}"
-                
-                if case_result["status"] != "error":
-                    if stdout == expected_output:
-                        case_result["status"] = "pass"
-                    else:
-                        case_result["status"] = "fail"
-                
-            except subprocess.TimeoutExpired:
+            if status_id != 3: # Not Accepted
                 case_result["status"] = "error"
-                case_result["error"] = "Execution timed out after 5 seconds."
-            except Exception as exec_err:
-                case_result["status"] = "error"
-                case_result["error"] = f"An unexpected error occurred during execution: {str(exec_err)}"
+                # Prioritize error messages
+                error_details = stderr or compile_output or message or judge_result.get('status', {}).get('description')
+                case_result["error"] = error_details
+            else:
+                 # It ran successfully, now check logic correctness if expected output exists
+                if expected_output:
+                     if stdout == expected_output:
+                         case_result["status"] = "pass"
+                     else:
+                         case_result["status"] = "fail"
+            
             results.append(case_result)
-    finally:
-        shutil.rmtree(temp_dir)
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Judge0 Connection Error: {e}")
+            return create_error_response(f"Execution environment unavailable: {str(e)}", 503)
+        except Exception as e:
+            logger.error(f"Judge0 Execution Error: {e}")
+            return create_error_response(f"Execution failed: {str(e)}", 500)
 
     return jsonify({"results": results}), 200
 
