@@ -45,7 +45,7 @@ const AcademicIntegrityPage = () => {
     const [currentStep, setCurrentStep] = useState(0);
     const [error, setError] = useState('');
     const [selectedFinding, setSelectedFinding] = useState(null);
-    
+
     const editorRef = useRef(null);
     const decorationsRef = useRef([]);
     const pollingIntervalRef = useRef(null);
@@ -68,10 +68,10 @@ const AcademicIntegrityPage = () => {
             const { reportId, initialReport } = await api.submitIntegrityCheck({ text });
             setReport(initialReport);
 
-            if(initialReport.bias) setCurrentStep(1);
-            if(initialReport.readability) setCurrentStep(2);
-            if(initialReport.plagiarism) setCurrentStep(3);
-            
+            if (initialReport.bias) setCurrentStep(1);
+            if (initialReport.readability) setCurrentStep(2);
+            if (initialReport.plagiarism) setCurrentStep(3);
+
             if (initialReport.plagiarism?.status === 'pending') {
                 setCurrentStep(4);
                 startPolling(reportId);
@@ -107,7 +107,7 @@ const AcademicIntegrityPage = () => {
             }
         }, 5000);
     };
-    
+
     const stopPolling = () => {
         if (pollingIntervalRef.current) {
             clearInterval(pollingIntervalRef.current);
@@ -138,7 +138,7 @@ const AcademicIntegrityPage = () => {
         }
     }, [selectedFinding]);
 
-const handleApplySuggestion = (finding) => {
+    const handleApplySuggestion = (finding) => {
         const { text: originalText, suggestion } = finding;
         const editor = editorRef.current;
         if (!editor) return;
@@ -151,18 +151,18 @@ const handleApplySuggestion = (finding) => {
 
         if (matches.length > 0) {
             const range = matches[0].range;
-            
+
             // Create an "edit" operation to replace the text
             const op = { range: range, text: suggestion };
-            
+
             // Execute the edit and clear the selection/highlight
             editor.executeEdits('bias-fix', [op]);
             editor.setSelection(range); // Optional: select the newly inserted text
-            
+
             // Clear the highlight decoration
             decorationsRef.current = editor.deltaDecorations(decorationsRef.current, []);
             setSelectedFinding(null); // Clear the selected finding state
-            
+
             toast.success('Suggestion applied!');
         } else {
             toast.error(`Could not find the text "${originalText}" to replace. It may have already been changed.`);
@@ -175,7 +175,7 @@ const handleApplySuggestion = (finding) => {
         if (!file) return;
 
         const toastId = toast.loading(`Extracting text from ${file.name}...`);
-        
+
         // This function wraps FileReader in a promise for clean async/await usage
         const readFileAsArrayBuffer = (inputFile) => {
             return new Promise((resolve, reject) => {
@@ -221,13 +221,10 @@ const handleApplySuggestion = (finding) => {
     // --- END OF CORRECTION ---
 
     return (
-        <div className="flex flex-col h-screen bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark font-sans">
-             <style>{`.highlighted-finding { background-color: #fef9c3; } .monaco-editor .margin { background-color: ${theme === 'dark' ? '#1E293B' : '#FFFFFF'}; }`}</style>
-            <header className="flex-shrink-0 bg-surface-light dark:bg-surface-dark border-b border-border-light dark:border-border-dark h-16 flex items-center justify-between px-6 z-10">
+        <div className="flex flex-col h-screen bg-chat-bg-light dark:bg-chat-bg-dark text-chat-text-light dark:text-chat-text-dark font-sans">
+            <style>{`.highlighted-finding { background-color: #fef9c3; } .monaco-editor .margin { background-color: ${theme === 'dark' ? '#212121' : '#FFFFFF'}; }`}</style>
+            <header className="flex-shrink-0 bg-chat-surface-light dark:bg-chat-surface-dark border-b border-border-light dark:border-white/10 h-16 flex items-center justify-between px-6 z-10">
                 <h1 className="text-xl font-bold">Academic Integrity Checker</h1>
-                <Link to="/" className="flex items-center gap-2 text-sm btn btn-ghost">
-                    <Home size={16}/> Back to Main App
-                </Link>
             </header>
 
             <div className="flex-1 overflow-hidden p-2 md:p-4">
@@ -237,9 +234,9 @@ const handleApplySuggestion = (finding) => {
                             <div className="flex-shrink-0 flex justify-between items-center mb-2">
                                 <h2 className="font-semibold">Your Document</h2>
                                 <div className="flex items-center gap-2">
-                                     <Button
+                                    <Button
                                         onClick={() => document.getElementById('file-upload').click()}
-                                        size="sm" variant="outline" leftIcon={<UploadCloud size={14}/>}
+                                        size="sm" variant="outline" leftIcon={<UploadCloud size={14} />}
                                     >
                                         Upload
                                     </Button>
@@ -249,7 +246,7 @@ const handleApplySuggestion = (finding) => {
                                     </Button>
                                 </div>
                             </div>
-                            <div className="flex-grow border border-border-light dark:border-border-dark rounded-md overflow-hidden">
+                            <div className="flex-grow border border-border-light dark:border-white/10 rounded-md overflow-hidden">
                                 <Editor
                                     onMount={handleEditorDidMount}
                                     value={text}
@@ -263,7 +260,7 @@ const handleApplySuggestion = (finding) => {
                     <PanelResizeHandle className="w-2 panel-resize-handle" />
                     <Panel defaultSize={50} minSize={30}>
                         <div className="p-2 h-full">
-                           <IntegrityReportPanel
+                            <IntegrityReportPanel
                                 report={report}
                                 isLoading={isLoading}
                                 error={error}

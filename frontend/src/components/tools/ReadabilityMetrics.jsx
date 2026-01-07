@@ -6,7 +6,7 @@ const Gauge = ({ value, maxValue, label, tooltip, higherIsBetter = true }) => {
     const radius = 50;
     const circumference = 2 * Math.PI * radius;
     const arcLength = circumference * 0.75; // Use 3/4 of the circle
-    
+
     let progress = Math.max(0, Math.min(value / maxValue, 1));
     if (!higherIsBetter) {
         progress = 1 - progress; // Invert progress for metrics where lower is better
@@ -55,25 +55,25 @@ const ReadabilityMetrics = ({ metrics }) => {
         <div className="space-y-4">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {/* Simple Stat Cards */}
-                <div className="p-3 bg-gray-100 dark:bg-gray-800/50 rounded-lg text-center">
+                <div className="p-3 bg-transparent rounded-lg text-center">
                     <p className="text-xs font-semibold text-text-muted-light dark:text-text-muted-dark">Word Count</p>
                     <p className="text-2xl font-bold">{metrics.wordCount}</p>
                 </div>
-                <div className="p-3 bg-gray-100 dark:bg-gray-800/50 rounded-lg text-center">
+                <div className="p-3 bg-transparent rounded-lg text-center">
                     <p className="text-xs font-semibold text-text-muted-light dark:text-text-muted-dark">Sentence Count</p>
                     <p className="text-2xl font-bold">{metrics.sentenceCount}</p>
                 </div>
-                <div className="p-3 bg-gray-100 dark:bg-gray-800/50 rounded-lg text-center">
+                <div className="p-3 bg-transparent rounded-lg text-center">
                     <p className="text-xs font-semibold text-text-muted-light dark:text-text-muted-dark">Avg. Sentence</p>
                     <p className="text-2xl font-bold">{metrics.avgSentenceLength} words</p>
                 </div>
-                 <div className="p-3 bg-gray-100 dark:bg-gray-800/50 rounded-lg text-center">
+                <div className="p-3 bg-transparent rounded-lg text-center">
                     <p className="text-xs font-semibold text-text-muted-light dark:text-text-muted-dark">Dale-Chall Score</p>
                     <p className="text-2xl font-bold" title="Scores 9.0-9.9 are understandable by an average 11th/12th grader. Lower is easier.">{metrics.daleChall.toFixed(1)}</p>
                 </div>
             </div>
             {/* Gauge Visualizations */}
-             <div className="flex justify-around items-center flex-wrap gap-4 pt-4 border-t border-dashed border-border-light dark:border-border-dark">
+            <div className="flex justify-around items-center flex-wrap gap-4 pt-4 border-t border-dashed border-border-light dark:border-border-dark">
                 <Gauge value={metrics.fleschReadingEase} maxValue={100} label="Reading Ease" tooltip="Higher scores are easier to read. 60-70 is standard for most documents." higherIsBetter={true} />
                 <Gauge value={metrics.fleschKincaidGrade} maxValue={20} label="Grade Level" tooltip="Indicates the US school-grade level needed to understand the text. Lower is easier." higherIsBetter={false} />
                 <Gauge value={metrics.gunningFog} maxValue={20} label="Gunning Fog Index" tooltip="Estimates the years of formal education needed. A score around 12 is widely readable." higherIsBetter={false} />

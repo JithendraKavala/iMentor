@@ -74,7 +74,7 @@ const GroupedHistory = ({ sessions, selectedSessionId, onSelect, onDelete }) => 
 
 function Sidebar({ authUser, onLogout, onSelectSession }) {
     const {
-        handleNewChat,
+        setSessionId,
         currentSessionId,
         selectedLLM, switchLLM,
         systemPrompt, setSystemPrompt,
@@ -84,6 +84,12 @@ function Sidebar({ authUser, onLogout, onSelectSession }) {
     } = useAppState();
 
     const navigate = useNavigate();
+
+    const handleNewChat = () => {
+        if (!currentSessionId && location.pathname === '/') return;
+        setSessionId(null);
+        navigate('/');
+    };
     const location = useLocation();
     const [sessions, setSessions] = useState([]);
     const [isLoadingHistory, setIsLoadingHistory] = useState(false);
@@ -199,7 +205,23 @@ function Sidebar({ authUser, onLogout, onSelectSession }) {
                             </button>
                         </div>
                     </div>
+
+                    {/* Tools Section */}
+                    <div className="pt-2 pb-1">
+                        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-1 mb-2">Tools</h3>
+                        <div className="space-y-1">
+                            <button
+                                onClick={() => navigate('/tools/integrity-checker')}
+                                className={`flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm transition-colors group ${location.pathname === '/tools/integrity-checker' ? 'bg-white/10 text-white' : 'text-gray-300 hover:bg-white/5 hover:text-white'
+                                    }`}
+                            >
+                                <Sparkles size={16} className={`${location.pathname === '/tools/integrity-checker' ? 'text-white' : 'text-gray-500 group-hover:text-white transition-colors'}`} />
+                                <span>Integrity Checker</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
+
 
                 <div className="flex-1 overflow-y-auto px-2 py-2 custom-scrollbar">
                     {isLoadingHistory ? (
@@ -256,7 +278,7 @@ function Sidebar({ authUser, onLogout, onSelectSession }) {
                         </div>
                     )}
                 </div>
-            </aside>
+            </aside >
 
             <LLMSelectionModal
                 isOpen={isLLMModalOpen}

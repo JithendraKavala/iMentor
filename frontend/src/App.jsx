@@ -411,7 +411,7 @@ function App() {
                         <Route path="/tools/files" element={<ToolLayout><FilesHistoryPage /></ToolLayout>} />
                         <Route path="/study-plan" element={<ToolLayout><StudyPlanPage handleNewChat={handleNewChat} /></ToolLayout>} />
                         <Route path="/tools/quiz-generator" element={<QuizGeneratorPage />} />
-                        <Route path="/tools/integrity-checker" element={<AcademicIntegrityPage />} />
+                        <Route path="/tools/integrity-checker" element={<ToolLayout><AcademicIntegrityPage /></ToolLayout>} />
 
                         {/* Public Footer Pages (Authenticated Users) */}
                         <Route path="/data/privacy" element={<PrivacyPolicy onLoginClick={openAuthModal} />} /> {/* Legacy mapping if any */}
