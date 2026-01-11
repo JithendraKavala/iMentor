@@ -6,49 +6,53 @@ from pydub import AudioSegment
 import io
 import os
 
+import config # Ensure config is imported
+
 logger = logging.getLogger(__name__)
 
 # --- Model Configuration ---
 # Using the dedicated Indian English model.
 MODEL_NAME = "tts_models/en/ljspeech/vits--neon"
 
-tts_instance = None
+_tts_instance = None
 
-def initialize_tts():
+def get_tts_model():
     """
-    Initializes the Coqui TTS model once at application startup.
+    Lazy loads the Coqui TTS model.
     """
-    global tts_instance
-    if tts_instance is None:
+    global _tts_instance
+    if not config.ENABLE_TTS:
+        logger.debug("TTS is disabled via ENABLE_TTS=false.")
+        return None
+
+    if _tts_instance is None:
         try:
             device = "cuda" if torch.cuda.is_available() else "cpu"
             logger.info(f"Initializing Coqui TTS with Indian English model '{MODEL_NAME}' on device: {device}")
-            
-            tts_instance = TTS(MODEL_NAME).to(device)
-            
-            logger.info("Coqui TTS Indian English model loaded successfully and is ready for synthesis.")
+            _tts_instance = TTS(MODEL_NAME).to(device)
+            logger.info("Coqui TTS Indian English model loaded successfully.")
         except Exception as e:
-            logger.critical(f"FATAL: Could not initialize Coqui TTS model. High-quality podcast generation will be unavailable. Error: {e}", exc_info=True)
+            logger.critical(f"FATAL: Could not initialize Coqui TTS model. Error: {e}", exc_info=True)
+            _tts_instance = None # Ensure it stays None on failure
+            raise e
+            
+    return _tts_instance
 
 def synthesize_speech(text: str, speaker: str) -> AudioSegment:
     """
-    Synthesizes speech and applies pitch shifting to create three distinct voices
-    from a single-speaker model.
-
-    Args:
-        text (str): The text to synthesize.
-        speaker (str): The speaker identifier ('A', 'B', or 'C').
-
-    Returns:
-        AudioSegment: A pydub AudioSegment object of the synthesized speech.
+    Synthesizes speech and applies pitch shifting to create three distinct voices.
     """
-    if tts_instance is None:
-        raise RuntimeError("TTS service is not initialized. High-quality synthesis is unavailable.")
+    tts = get_tts_model()
+    if tts is None:
+        if not config.ENABLE_TTS:
+             raise RuntimeError("TTS is disabled in configuration.")
+        else:
+             raise RuntimeError("TTS service failed to initialize.")
     
     try:
         wav_buffer = io.BytesIO()
         
-        tts_instance.tts_to_file(
+        tts.tts_to_file(
             text=text,
             speaker=None,
             file_path=wav_buffer,

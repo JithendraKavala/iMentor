@@ -48,32 +48,8 @@ class VectorDBService:
                 timeout=30
             )
 
-        try:
-            # This model is for encoding search queries.
-            # Its output dimension MUST match self.vector_dim (QDRANT_COLLECTION_VECTOR_DIM).
-            logger.info(f"  Loading query embedding model: '{config.QUERY_EMBEDDING_MODEL_NAME}'")
-            self.model = SentenceTransformer(config.QUERY_EMBEDDING_MODEL_NAME)
-            model_embedding_dim = self.model.get_sentence_embedding_dimension()
-            logger.info(f"  Query model loaded. Output dimension: {model_embedding_dim}")
-
-            if model_embedding_dim != self.vector_dim:
-                error_msg = (
-                    f"CRITICAL DIMENSION MISMATCH: Query model '{config.QUERY_EMBEDDING_MODEL_NAME}' "
-                    f"outputs embeddings of dimension {model_embedding_dim}, but the Qdrant collection "
-                    f"is configured for dimension {self.vector_dim} (derived from document model: "
-                    f"'{config.DOCUMENT_EMBEDDING_MODEL_NAME}'). Search functionality will fail. "
-                    "Ensure query and document models produce compatible embedding dimensions, "
-                    "or environment variables for dimensions are correctly set."
-                )
-                logger.error(error_msg)
-                raise ValueError(error_msg) # Critical error, stop initialization
-            else:
-                logger.info(f"  Query model output dimension ({model_embedding_dim}) matches "
-                            f"Qdrant collection dimension ({self.vector_dim}).")
-
-        except Exception as e:
-            logger.error(f"Error initializing SentenceTransformer model '{config.QUERY_EMBEDDING_MODEL_NAME}' for query encoding: {e}", exc_info=True)
-            raise # Re-raise to prevent service startup with a non-functional query encoder
+        # Model is now lazy-loaded in search_documents via config.get_query_embedding_model()
+        logger.info("  VectorDBService initialized (Model will be lazy loaded).")
 
         self.collection_name = config.QDRANT_COLLECTION_NAME
         # No ThreadPoolExecutor needed here if document encoding is external
@@ -206,7 +182,11 @@ class VectorDBService:
             logger.info("No filter applied for search.")
 
         try:
-            query_embedding = self.model.encode(query).tolist()
+            model = config.get_query_embedding_model()
+            if not model:
+               raise RuntimeError("Query embedding model could not be loaded.")
+
+            query_embedding = model.encode(query).tolist()
             logger.debug(f"Generated query_embedding (length: {len(query_embedding)}, first 5 dims: {query_embedding[:5]})")
 
             search_results = self.client.search(

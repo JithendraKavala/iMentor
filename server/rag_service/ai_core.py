@@ -51,8 +51,7 @@ Presentation = getattr(config, 'Presentation', None)
 Image = getattr(config, 'Image', None)
 fitz = getattr(config, 'fitz', None)
 pytesseract = getattr(config, 'pytesseract', None)
-nlp_spacy_core = getattr(config, 'nlp_spacy_core', None)
-document_embedding_model = getattr(config, 'document_embedding_model', None)
+# nlp_spacy_core and document_embedding_model are now accessed via config getters
 RecursiveCharacterTextSplitter = getattr(config, 'RecursiveCharacterTextSplitter', None)
 
 # Constants
@@ -510,7 +509,8 @@ def clean_and_normalize_text_content(text: str, file_base_name_for_log: str ="")
 
     text_lower = text.lower() # Convert to lowercase AFTER regex to preserve case for URLs/emails if needed
 
-    if not (SPACY_MODEL_LOADED and nlp_spacy_core):
+    nlp_spacy_core = config.get_spacy_model()
+    if not nlp_spacy_core:
         logger.warning(f"SpaCy model not loaded for {file_base_name_for_log}. Skipping lemmatization. Returning regex-cleaned text.")
         return text_lower
     
@@ -631,7 +631,8 @@ def extract_document_metadata_info(
         doc_meta['page_count'] = max(1, processed_text.count('\n\n') + 1) # Rough estimate
 
     # NER (Named Entity Recognition) - using SpaCy
-    if processed_text and SPACY_MODEL_LOADED and nlp_spacy_core:
+    nlp_spacy_core = config.get_spacy_model()
+    if processed_text and nlp_spacy_core:
         logger.info(f"Extracting named entities for {original_file_name}...")
         try:
             text_for_ner = processed_text[:MAX_TEXT_LENGTH_FOR_NER] # Use config alias
@@ -719,8 +720,10 @@ def chunk_document_into_segments(
 
 def generate_segment_embeddings(document_chunks: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     if not document_chunks: return []
-    if not (EMBEDDING_MODEL_LOADED and document_embedding_model):
-        logger.error("Embedding model not loaded. Cannot generate embeddings.")
+    
+    document_embedding_model = config.get_document_embedding_model()
+    if not document_embedding_model:
+        logger.error("Embedding model could not be loaded. Cannot generate embeddings.")
         for chunk_dict in document_chunks: chunk_dict['embedding'] = None
         return document_chunks
 

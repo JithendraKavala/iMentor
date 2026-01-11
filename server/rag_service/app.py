@@ -38,7 +38,7 @@ try:
     import ai_core
     import neo4j_handler
     from neo4j import exceptions as neo4j_exceptions
-    from tts_service import initialize_tts
+    # from tts_service import initialize_tts # Removed eager init
     import document_generator
     import podcast_generator
     import google.generativeai as genai
@@ -177,7 +177,7 @@ except Exception as e:
     logger.critical(f"Neo4j driver failed to initialize: {e}.")
 atexit.register(neo4j_handler.close_driver)
 
-initialize_tts()
+# initialize_tts() # Removed eager init, now lazy loaded in tts_service
 
 
 def create_error_response(message, status_code=500, details=None):

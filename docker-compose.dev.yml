@@ -1,0 +1,151 @@
+version: "3.9"
+
+services:
+  # -------------------------
+  # Qdrant (Vector DB)
+  # -------------------------
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: qdrant_service
+    ports:
+      - "2003:6333"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    environment:
+      - QDRANT__STORAGE__PERFORMANCE__MAX_SEARCH_THREADS=2
+    mem_limit: 256m
+    networks:
+      - ai_tutor_network
+    restart: unless-stopped
+
+  # -------------------------
+  # Neo4j (Graph DB)
+  # -------------------------
+  neo4j:
+    image: neo4j:5.17.0
+    container_name: neo4j_service
+    ports:
+      - "2004:7474"
+      - "7687:7687"
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+    environment:
+      - NEO4J_AUTH=neo4j/password
+      - NEO4J_dbms_memory_heap_initial__size=256m
+      - NEO4J_dbms_memory_heap_max__size=256m
+      - NEO4J_dbms_memory_pagecache_size=256m
+    mem_limit: 512m
+    networks:
+      - ai_tutor_network
+    restart: unless-stopped
+
+  # -------------------------
+  # Redis (Cache + Judge0)
+  # -------------------------
+  redis:
+    image: redis:7.2-alpine
+    container_name: redis_service
+    command: ["redis-server", "--maxmemory", "128mb", "--maxmemory-policy", "allkeys-lru"]
+    ports:
+      - "2005:6379"
+    volumes:
+      - redis_data:/data
+    mem_limit: 128m
+    networks:
+      - ai_tutor_network
+    restart: unless-stopped
+
+# Remove Judge0 related services if not needed
+  # # -------------------------
+  # # Judge0 API
+  # # -------------------------
+  # judge0-server:
+  #   image: judge0/judge0:latest
+  #   container_name: judge0-server
+  #   ports:
+  #     - "2358:2358"
+  #   volumes:
+  #     - ./judge0.conf:/judge0.conf:ro
+  #   privileged: true
+  #   environment:
+  #     - REDIS_HOST=redis
+  #     - REDIS_PORT=6379
+  #     - POSTGRES_HOST=judge0-db
+  #     - POSTGRES_PORT=5432
+  #     - POSTGRES_USER=judge0
+  #     - POSTGRES_PASSWORD=judge0
+  #     - POSTGRES_DB=judge0
+  #     - JUDGE0_HOMEPAGE_MESSAGE=iMentor Dev Code Runner
+  #   depends_on:
+  #     - redis
+  #     - judge0-db
+  #   mem_limit: 256m
+  #   networks:
+  #     - ai_tutor_network
+  #   restart: always
+
+  # # -------------------------
+  # # Judge0 Worker (SINGLE WORKER)
+  # # -------------------------
+  # judge0-worker:
+  #   image: judge0/judge0:latest
+  #   container_name: judge0-worker
+  #   command: ["./scripts/workers", "redis"]
+  #   privileged: true
+  #   security_opt:
+  #     - apparmor:unconfined
+  #   volumes:
+  #     - /sys/fs/cgroup:/sys/fs/cgroup:rw
+  #   environment:
+  #     - FORCE_CGROUP_V2=true
+  #     - JUDGE0_ISOLATE_CGROUP_V2=true
+  #     - WORKERS=1
+  #     - REDIS_HOST=redis
+  #     - REDIS_PORT=6379
+  #     - POSTGRES_HOST=judge0-db
+  #     - POSTGRES_PORT=5432
+  #     - POSTGRES_USER=judge0
+  #     - POSTGRES_PASSWORD=judge0
+  #     - POSTGRES_DB=judge0
+  #   depends_on:
+  #     - redis
+  #     - judge0-db
+  #   mem_limit: 512m
+  #   networks:
+  #     - ai_tutor_network
+  #   restart: always
+
+  # # -------------------------
+  # # Judge0 PostgreSQL
+  # # -------------------------
+  # judge0-db:
+  #   image: postgres:13
+  #   container_name: judge0-db
+  #   environment:
+  #     - POSTGRES_USER=judge0
+  #     - POSTGRES_PASSWORD=judge0
+  #     - POSTGRES_DB=judge0
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   mem_limit: 256m
+  #   networks:
+  #     - ai_tutor_network
+  #   restart: always
+
+# -------------------------
+# Volumes
+# -------------------------
+volumes:
+  qdrant_data:
+  neo4j_data:
+  neo4j_logs:
+  redis_data:
+  postgres_data:
+
+# -------------------------
+# Network
+# -------------------------
+networks:
+  ai_tutor_network:
+    driver: bridge

@@ -84,6 +84,12 @@ LOGGING_LEVEL      = getattr(logging, LOGGING_LEVEL_NAME, logging.INFO)
 LOGGING_FORMAT     = '%(asctime)s - %(levelname)s - [%(name)s:%(lineno)d] - %(message)s'
 
 
+# --- Environment Configuration ---
+APP_ENV = os.getenv('APP_ENV', 'dev').lower()
+ENABLE_TTS = os.getenv('ENABLE_TTS', 'false').lower() == 'true'
+
+logger.info(f"RAG Service Starting in {APP_ENV.upper()} mode. TTS Enabled: {ENABLE_TTS}")
+
 # --- API Keys and Service URLs ---
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
 GEMINI_MODEL_NAME = "gemma-3-27b-it" # User requested model via Google API
@@ -104,7 +110,13 @@ NEO4J_DATABASE = os.getenv("NEO4J_DATABASE", "neo4j")
 
 QDRANT_HOST = os.getenv("QDRANT_HOST", "localhost")
 QDRANT_PORT = int(os.getenv("QDRANT_PORT", 2003))
-QDRANT_COLLECTION_NAME = os.getenv("QDRANT_COLLECTION_NAME", "my_qdrant_rag_collection")
+
+# --- Dynamic Qdrant Collection Name ---
+if APP_ENV == 'prod':
+    QDRANT_COLLECTION_NAME = os.getenv("QDRANT_COLLECTION_NAME", "rag_collection_prod")
+else:
+    QDRANT_COLLECTION_NAME = os.getenv("QDRANT_COLLECTION_NAME", "rag_collection_dev")
+
 QDRANT_API_KEY = os.getenv("QDRANT_API_KEY", None)
 QDRANT_URL = os.getenv("QDRANT_URL", None)
 
@@ -112,21 +124,29 @@ QDRANT_URL = os.getenv("QDRANT_URL", None)
 JUDGE0_API_URL = os.getenv("JUDGE0_API_URL", "http://localhost:2358")
 
 # --- Embedding Model Configuration ---
-DEFAULT_DOC_EMBED_MODEL = 'mixedbread-ai/mxbai-embed-large-v1'
-DOCUMENT_EMBEDDING_MODEL_NAME = os.getenv('DOCUMENT_EMBEDDING_MODEL_NAME', DEFAULT_DOC_EMBED_MODEL)
+# Select model based on environment
+if APP_ENV == 'prod':
+    DOCUMENT_EMBEDDING_MODEL_NAME = 'mixedbread-ai/mxbai-embed-large-v1'
+else:
+    # Lightweight model for dev to save RAM
+    DOCUMENT_EMBEDDING_MODEL_NAME = 'sentence-transformers/all-MiniLM-L6-v2'
+
+logger.info(f"Selected Embedding Model: {DOCUMENT_EMBEDDING_MODEL_NAME}")
 
 _MODEL_TO_DIM_MAPPING = {
     'mixedbread-ai/mxbai-embed-large-v1': 1024,
     'BAAI/bge-large-en-v1.5': 1024,
     'all-MiniLM-L6-v2': 384,
+    'sentence-transformers/all-MiniLM-L6-v2': 384,
     'sentence-transformers/all-mpnet-base-v2': 768,
 }
 _FALLBACK_DIM = 768
-DOCUMENT_VECTOR_DIMENSION = int(os.getenv("DOCUMENT_VECTOR_DIMENSION", _MODEL_TO_DIM_MAPPING.get(DOCUMENT_EMBEDDING_MODEL_NAME, _FALLBACK_DIM)))
+DOCUMENT_VECTOR_DIMENSION = _MODEL_TO_DIM_MAPPING.get(DOCUMENT_EMBEDDING_MODEL_NAME, _FALLBACK_DIM)
 QDRANT_COLLECTION_VECTOR_DIM = DOCUMENT_VECTOR_DIMENSION
+logger.info(f"Vector Dimension: {QDRANT_COLLECTION_VECTOR_DIM}")
 
-QUERY_EMBEDDING_MODEL_NAME = os.getenv("QUERY_EMBEDDING_MODEL_NAME", DOCUMENT_EMBEDDING_MODEL_NAME)
-QUERY_VECTOR_DIMENSION = int(os.getenv("QUERY_VECTOR_DIMENSION", _MODEL_TO_DIM_MAPPING.get(QUERY_EMBEDDING_MODEL_NAME, _FALLBACK_DIM)))
+QUERY_EMBEDDING_MODEL_NAME = DOCUMENT_EMBEDDING_MODEL_NAME # Use same model for query and doc
+QUERY_VECTOR_DIMENSION = DOCUMENT_VECTOR_DIMENSION
 
 if QUERY_VECTOR_DIMENSION != QDRANT_COLLECTION_VECTOR_DIM:
     logger.warning(f"[Config Warning] Query vector dim ({QUERY_VECTOR_DIMENSION}) != Qdrant dim ({QDRANT_COLLECTION_VECTOR_DIM})")
@@ -203,7 +223,6 @@ try:
 except ImportError: LANGCHAIN_SPLITTER_AVAILABLE, RecursiveCharacterTextSplitter = False, None
 
 
-
 try:
     import yt_dlp
     YTDLP_AVAILABLE = True
@@ -236,29 +255,59 @@ except ImportError:
 
 
     
-# ─── Optional: Preload SpaCy & Embedding Model ───────
-nlp_spacy_core, SPACY_MODEL_LOADED = None, False
-try:
-    import spacy
-    nlp_spacy_core = spacy.load(SPACY_MODEL_NAME)
-    SPACY_MODEL_LOADED = True
-except Exception as e:
-    logger.warning(f"Failed to load SpaCy model '{SPACY_MODEL_NAME}': {e}")
+# ─── Lazy Model Loading ──────────────────────
 
-document_embedding_model, EMBEDDING_MODEL_LOADED = None, False
-try:
-    from sentence_transformers import SentenceTransformer
-    document_embedding_model = SentenceTransformer(DOCUMENT_EMBEDDING_MODEL_NAME)
-    EMBEDDING_MODEL_LOADED = True
-except Exception as e:
-    logger.warning(f"Failed to load Sentence Transformer model '{DOCUMENT_EMBEDDING_MODEL_NAME}': {e}")
+_nlp_spacy_core = None
+_document_embedding_model = None
+_whisper_model = None
 
-whisper_model, WHISPER_MODEL_LOADED = None, False
-try:
-    import whisper
-    # Using 'base' model is a good balance. Could be configured via .env in the future.
-    whisper_model = whisper.load_model("base")
-    WHISPER_MODEL_LOADED = True
-    logger.info("Successfully pre-loaded Whisper 'base' model.")
-except Exception as e:
-    logger.warning(f"Failed to pre-load Whisper model: {e}. Transcription will fail.")
+def get_spacy_model():
+    global _nlp_spacy_core
+    if _nlp_spacy_core is None:
+        try:
+            import spacy
+            logger.info(f"Lazy loading SpaCy model: {SPACY_MODEL_NAME}")
+            _nlp_spacy_core = spacy.load(SPACY_MODEL_NAME)
+        except Exception as e:
+            logger.warning(f"Failed to load SpaCy model '{SPACY_MODEL_NAME}': {e}")
+            _nlp_spacy_core = None
+    return _nlp_spacy_core
+
+def get_document_embedding_model():
+    global _document_embedding_model
+    if _document_embedding_model is None:
+        try:
+            from sentence_transformers import SentenceTransformer
+            logger.info(f"Lazy loading Embedding model: {DOCUMENT_EMBEDDING_MODEL_NAME}")
+            _document_embedding_model = SentenceTransformer(DOCUMENT_EMBEDDING_MODEL_NAME)
+        except Exception as e:
+            logger.warning(f"Failed to load Sentence Transformer model '{DOCUMENT_EMBEDDING_MODEL_NAME}': {e}")
+            _document_embedding_model = None
+    return _document_embedding_model
+
+def get_query_embedding_model():
+    # In this setup, query and doc models are the same instance
+    return get_document_embedding_model()
+
+def get_whisper_model():
+    global _whisper_model
+    if _whisper_model is None:
+        try:
+            if not ENABLE_TTS:
+                logger.debug("TTS/Whisper is disabled via env. Returning None.")
+                return None
+
+            import whisper
+            # Using 'base' model is a good balance.
+            logger.info("Lazy loading Whisper 'base' model...")
+            _whisper_model = whisper.load_model("base")
+            logger.info("Successfully loaded Whisper 'base' model.")
+        except Exception as e:
+            logger.warning(f"Failed to load Whisper model: {e}. Transcription will fail.")
+            _whisper_model = None
+    return _whisper_model
+
+# Export availability flags that were previously set by eager loading
+SPACY_MODEL_LOADED = True # Assumed available to try loading, handled by getter
+EMBEDDING_MODEL_LOADED = True # Assumed available to try loading
+WHISPER_MODEL_LOADED = True # Assumed available to try loading
