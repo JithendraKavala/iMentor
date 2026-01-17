@@ -26,6 +26,12 @@ const ProfileSchema = new mongoose.Schema(
       type: Map,
       of: Number,
       default: () => new Map()
+    },
+    // Stream 2: Contextual Memory
+    studentState: {
+        masteredConcepts: { type: [String], default: [] },
+        strugglingConcepts: { type: [String], default: [] },
+        learningStylePreference: { type: String, default: "Not Specified" }
     }
   },
   { _id: false }

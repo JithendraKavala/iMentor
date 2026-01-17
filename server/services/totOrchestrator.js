@@ -6,7 +6,7 @@ const ollamaService = require('./ollamaService');
 const groqService = require('./groqService');
 const anthropicService = require('./anthropicService');
 const { mcpClient } = require('./toolRegistry');
-const { PLANNER_PROMPT_TEMPLATE, EVALUATOR_PROMPT_TEMPLATE, createSynthesizerPrompt, CHAT_MAIN_SYSTEM_PROMPT } = require('../config/promptTemplates');
+const { PLANNER_PROMPT_TEMPLATE, SOCRATIC_PLANNER_PROMPT, EVALUATOR_PROMPT_TEMPLATE, createSynthesizerPrompt, CHAT_MAIN_SYSTEM_PROMPT } = require('../config/promptTemplates');
 
 function getLLMService(provider) {
     switch (provider) {
@@ -34,7 +34,12 @@ async function generatePlans(query, requestContext) {
     let currentModeInstruction = "";
     let enforcedTool = null;
 
-    if (isWebSearchEnabled) {
+    // Stream 2: Socratic Mode check
+    const isSocratic = requestContext.isSocraticMode === true;
+
+    if (isSocratic) {
+        currentModeInstruction = `**SOCRATIC MODE ENABLED**: The user wants to learn, not just get answers. Prioritize plans that ask guiding questions. Use 'direct_answer' (tool_call: null) to interact with the user. Only use search tools if absolutely necessary to check facts for the teacher.`;
+    } else if (isWebSearchEnabled) {
         enforcedTool = "web_search";
         currentModeInstruction = `The user has explicitly enabled Web Search. Therefore, ALL steps in ALL plans MUST use the 'web_search' tool. Do NOT use 'rag_search', 'academic_search', or 'direct_answer' tools. For every step, your tool_call MUST be 'web_search' with the appropriate parameters.`;
     } else if (isAcademicSearchEnabled) {
@@ -54,7 +59,12 @@ async function generatePlans(query, requestContext) {
         `;
     }
 
-    const plannerPrompt = PLANNER_PROMPT_TEMPLATE
+    let plannerPromptTemplate = PLANNER_PROMPT_TEMPLATE;
+    if (isSocratic) {
+        plannerPromptTemplate = SOCRATIC_PLANNER_PROMPT;
+    }
+
+    const plannerPrompt = plannerPromptTemplate
         .replace("{userQuery}", query)
         .replace("{available_tools_json}", JSON.stringify(modelContext.available_tools, null, 2))
         .replace("{current_mode_tool_instruction}", currentModeInstruction);

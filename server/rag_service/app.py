@@ -438,10 +438,59 @@ def search_qdrant_documents():
         
         qdrant_filters = qdrant_models.Filter(must=must_conditions) if must_conditions else None
         
-        retrieved_docs, snippet_from_vector, docs_map = vector_service.search_documents(
-            query=query_text, k=k, filter_conditions=qdrant_filters
-        )
+        # Stream 4: Multi-Query Search & Deduplication
+        queries_list = data.get('queries', [query_text])
+        all_retrieved_docs = []
+
+        for q in queries_list:
+            docs, _, _ = vector_service.search_documents(
+                query=q, k=k, filter_conditions=qdrant_filters
+            )
+            all_retrieved_docs.extend(docs)
+
+        # Deduplicate
+        unique_docs_map = {}
+        for doc in all_retrieved_docs:
+            qid = doc.metadata.get('qdrant_id')
+            if qid not in unique_docs_map:
+                unique_docs_map[qid] = doc
+            else:
+                if doc.metadata.get('score', 0) > unique_docs_map[qid].metadata.get('score', 0):
+                    unique_docs_map[qid] = doc
+
+        final_docs_list = list(unique_docs_map.values())
+        final_docs_list.sort(key=lambda x: x.metadata.get('score', 0), reverse=True)
+        retrieved_docs = final_docs_list[:k]
         
+        # Re-format
+        docs_map = {}
+        formatted_context_parts = []
+        for i, doc_obj in enumerate(retrieved_docs):
+            citation_index = i + 1
+            doc_meta = doc_obj.metadata
+            display_subject = doc_meta.get("title", doc_meta.get("subject", "Unknown Subject"))
+            doc_name = doc_meta.get("original_name", doc_meta.get("file_name", "N/A"))
+            page_num_info = f" (Page: {doc_meta.get('page_number', 'N/A')})" if doc_meta.get('page_number') else ""
+            content_preview = doc_obj.page_content[:200] + "..." if len(doc_obj.page_content) > 200 else doc_obj.page_content
+
+            formatted = (f"[{citation_index}] Score: {doc_meta.get('score', 0.0):.4f} | "
+                         f"Source: {doc_name}{page_num_info} | Subject: {display_subject}\n"
+                         f"Content: {content_preview}")
+            formatted_context_parts.append(formatted)
+
+            docs_map[str(citation_index)] = {
+                "subject": display_subject,
+                "document_name": doc_name,
+                "page_number": doc_meta.get("page_number"),
+                "content_preview": content_preview,
+                "full_content": doc_obj.page_content,
+                "score": doc_meta.get("score", 0.0),
+                "qdrant_id": doc_meta.get("qdrant_id"),
+                "original_metadata": doc_meta
+            }
+
+        snippet_from_vector = "\n\n---\n\n".join(formatted_context_parts) if formatted_context_parts else "No relevant context was found."
+
         final_snippet = ""
         if facts_from_kg and "No specific facts were found" not in facts_from_kg:
             final_snippet += facts_from_kg + "\n\n---\n\n"
@@ -495,6 +544,7 @@ def add_document_qdrant():
     file_path = data.get('file_path') # This might be temporary or empty for URL content
     original_name = data.get('original_name')
     text_content_override = data.get('text_content_override') # NEW parameter
+    is_syllabus = data.get('is_syllabus', False) # Stream 2: Syllabus Flag
 
     if not all([user_id, original_name]):
         return create_error_response("Missing 'user_id' or 'original_name'", 400)
@@ -508,14 +558,16 @@ def add_document_qdrant():
             file_path="",  # Dummy, as content is overridden
             original_name=original_name,
             user_id=user_id,
-            text_content_override=text_content_override # Pass the override
+            text_content_override=text_content_override, # Pass the override
+            is_syllabus=is_syllabus
         )
     elif file_path and os.path.exists(file_path):
         logger.info(f"Adding document '{original_name}' (from file_path), user '{user_id}'.")
         processed_chunks, raw_text, kg_chunks = ai_core.process_document_for_qdrant(
             file_path=file_path,
             original_name=original_name,
-            user_id=user_id
+            user_id=user_id,
+            is_syllabus=is_syllabus
         )
     else:
         return create_error_response("Neither 'file_path' (and file exists) nor 'text_content_override' provided.", 400)

@@ -5,64 +5,52 @@ const User = require('../models/User');
 const { decrypt } = require('../utils/crypto');
 
 
-const SUMMARY_GAPS_PROMPT = `You are an expert educational analyst. Your task is to analyze the provided chat transcript and perform three actions. Your entire output MUST be a single, valid JSON object with NO other text before or after it.
+const SUMMARY_GAPS_PROMPT = `You are an expert educational analyst. Your task is to analyze the provided chat transcript and perform actions. Your entire output MUST be a single, valid JSON object with NO other text before or after it.
 
-The JSON object MUST have three keys:
-1.  "summary": A string containing an updated, cumulative summary of the conversation. Incorporate the "Existing Summary" with insights from the "New Messages".
-2.  "keyTopics": An array of strings listing the 3-4 most important topics discussed in the conversation (e.g., ["Python Decorators", "Machine Learning Applications"]). This must be generated regardless of user proficiency.
-3.  "knowledgeGaps": An array of objects, each with "topic" (string) and "proficiencyScore" (a number from 0.0 to 1.0).
+The JSON object MUST have keys:
+1.  "summary": A string containing an updated, cumulative summary.
+2.  "keyTopics": An array of strings listing 3-4 most important topics.
+3.  "knowledgeGaps": An array of objects, each with "topic" (string) and "proficiencyScore" (0.0 to 1.0).
+4.  "bloomScore": A number (0 to 100) representing the cognitive depth of the user's questions based on Bloom's Taxonomy.
+    -   Remember/Understand (e.g., "What is X?"): 10-30 points.
+    -   Apply/Analyze (e.g., "How does X work with Y?"): 40-70 points.
+    -   Evaluate/Create (e.g., "Design a system for...", "Critique this..."): 80-100 points.
 
 **CRITICAL INSTRUCTIONS FOR "knowledgeGaps":**
-- A knowledge gap exists if the user **explicitly states confusion** (e.g., "I have a gap in X", "I don't understand Y"), even if you provided a good explanation later.
-- A knowledge gap exists if the user asks **multiple, basic clarifying questions** about the same foundational topic.
-- Assign a **low proficiencyScore (e.g., 0.3 - 0.5)** to any topic where the user stated a "huge gap" or significant confusion at the start.
-- Only include topics where the user's proficiency appears to be below 0.8 by the end of the conversation. If they seem to understand everything perfectly, this array should be empty.
+- A knowledge gap exists if the user **explicitly states confusion**.
+- Assign low proficiencyScore (0.3-0.5) if confusion was stated.
+- Only include topics where proficiency < 0.8.
 
 Example Output:
 {
-  "summary": "The user stated a significant gap in their understanding of the Software Development Life Cycle (SDLC) and Separation of Concerns (SoC). A detailed explanation of SoC was provided, covering its goals and analogies.",
-  "keyTopics": ["Separation of Concerns (SoC)", "Software Design Principles", "System Complexity Management"],
-  "knowledgeGaps": [
-    {
-      "topic": "Separation of Concerns (SoC)",
-      "proficiencyScore": 0.4
-    }
-  ]
+  "summary": "...",
+  "keyTopics": ["SoC", "SDLC"],
+  "knowledgeGaps": [{ "topic": "SoC", "proficiencyScore": 0.4 }],
+  "bloomScore": 45
 }`;
 
 
+// --- Stream 3: Quests/Bounties Prompt ---
+const RECOMMENDATIONS_PROMPT = `You are a Gamified Learning Architect. Based on the topics, generate 3 "Quests" (Bounties) for the user to earn credits. Your entire output MUST be a single, valid JSON object with "recommendations" (array).
 
-// --- NEW, FOCUSED PROMPT 2: For Recommendations ---
-const RECOMMENDATIONS_PROMPT = `You are an expert academic advisor. Based on the provided list of topics from a recent study session, your task is to generate 3 strategic "next step" recommendations. Your entire output MUST be a single, valid JSON object with ONE key, "recommendations", containing an array of objects.
+For each topic, create a CHALLENGE.
+- Instead of "Read about X", say "Find 3 examples of X...".
+- Assign a 'reward' (credits) based on difficulty (10-100).
 
-For each topic, suggest a logical follow-up action.
-- Suggest 'direct_answer' for a related, more advanced concept.
-- Suggest 'web_search' for practical applications or recent news.
-- Suggest 'academic_search' for deeper, theoretical research.
+Each recommendation object MUST have:
+- "topic": The related topic.
+- "actionType": 'quest'.
+- "suggestion_text": The Quest description (e.g., "Find 3 real-world examples of AI in Healthcare and summarize them.").
+- "reward": Number (e.g., 50).
 
-Each recommendation object MUST have these keys:
-- "topic": The string for the NEW recommended topic.
-- "actionType": A string, must be one of 'web_search', 'academic_search', or 'direct_answer'.
-- "suggestion_text": A string containing a brief, encouraging sentence explaining what the user will learn next.
-
-Example Input Topics: ["Machine Learning Definition", "Real-world AI Applications"]
 Example Output:
 {
   "recommendations": [
     {
-      "topic": "Supervised vs. Unsupervised Learning",
-      "actionType": "direct_answer",
-      "suggestion_text": "Now that you know what ML is, let's explore its main learning paradigms."
-    },
-    {
-      "topic": "AI in Healthcare",
-      "actionType": "web_search",
-      "suggestion_text": "Discover how the applications we discussed are being used in the medical field today."
-    },
-    {
-      "topic": "Neural Network Architectures",
-      "actionType": "academic_search",
-      "suggestion_text": "Dive deeper into the technical foundations of modern AI by exploring research papers."
+      "topic": "AI Ethics",
+      "actionType": "quest",
+      "suggestion_text": "Identify 3 ethical biases in modern AI and explain how to mitigate them to earn 50 credits.",
+      "reward": 50
     }
   ]
 }`;
@@ -93,11 +81,12 @@ async function getSummaryAndGaps(transcript, existingSummary, llmProvider, ollam
         const finalSummary = result.summary || existingSummary || "";
         const knowledgeGaps = (result.knowledgeGaps && Array.isArray(result.knowledgeGaps)) ? result.knowledgeGaps : [];
         const keyTopics = (result.keyTopics && Array.isArray(result.keyTopics)) ? result.keyTopics : [];
+        const bloomScore = typeof result.bloomScore === 'number' ? result.bloomScore : 0;
         
-        console.log(`[SessionAnalysisService] Analysis successful. Found ${knowledgeGaps.length} gaps and ${keyTopics.length} key topics.`);
+        console.log(`[SessionAnalysisService] Analysis successful. Bloom Score: ${bloomScore}.`);
         
-        // Return all three pieces of data in the final object.
-        return { summary: finalSummary, knowledgeGaps, keyTopics };
+        // Return all pieces of data in the final object.
+        return { summary: finalSummary, knowledgeGaps, keyTopics, bloomScore };
         
     } catch (error) {
         console.error(`[SessionAnalysisService] Error during summary/gap/topic analysis: ${error.message}`);
@@ -139,21 +128,19 @@ async function generateRecommendations(knowledgeGaps, llmProvider, ollamaModel, 
  * @returns {Promise<{summary: string, knowledgeGaps: Map<string, number>, recommendations: Array<Object>}>}
  */
 async function analyzeAndRecommend(messagesToSummarize, existingSummary, llmProvider, ollamaModel, userApiKey, userOllamaUrl) {
-    const defaultResponse = { summary: existingSummary || "", knowledgeGaps: new Map(), recommendations: [] };
+    const defaultResponse = { summary: existingSummary || "", knowledgeGaps: new Map(), recommendations: [], bloomScore: 0 };
     if (!messagesToSummarize || messagesToSummarize.length < 2) {
         return defaultResponse;
     }
     
     const transcript = messagesToSummarize.map(msg => `${msg.role === 'model' ? 'Tutor' : 'Student'}: ${msg.parts?.[0]?.text || ''}`).join('\n---\n');
 
-    // Step A: Get Summary, Gaps, and NOW Key Topics
-    const { summary, knowledgeGaps, keyTopics } = await getSummaryAndGaps(transcript, existingSummary, llmProvider, ollamaModel, userApiKey, userOllamaUrl);
+    // Step A: Get Summary, Gaps, Key Topics, and Bloom Score
+    const { summary, knowledgeGaps, keyTopics, bloomScore } = await getSummaryAndGaps(transcript, existingSummary, llmProvider, ollamaModel, userApiKey, userOllamaUrl);
 
-    // Step B: Generate Recommendations FROM THE KEY TOPICS
-    // We now pass keyTopics to the recommendation generator instead of knowledgeGaps
+    // Step B: Generate Quests (Recommendations)
     const recommendations = await generateRecommendations(keyTopics, llmProvider, ollamaModel, userApiKey, userOllamaUrl);
     
-    // ... (rest of the function converting knowledgeGaps to a Map remains the same)
     const knowledgeGapsMap = new Map();
     if (knowledgeGaps) {
         knowledgeGaps.forEach(item => {
@@ -163,7 +150,8 @@ async function analyzeAndRecommend(messagesToSummarize, existingSummary, llmProv
         });
     }
 
-        return { summary, knowledgeGaps: knowledgeGapsMap, recommendations, keyTopics };}
+    return { summary, knowledgeGaps: knowledgeGapsMap, recommendations, keyTopics, bloomScore };
+}
 
 
 module.exports = { analyzeAndRecommend }; 

@@ -56,7 +56,8 @@ const localToolsRegistry = {
             context.documentContextName, 
             context.userId, // <-- Pass the userId
             context.criticalThinkingEnabled, // <-- Pass the flag
-            context.filter
+            context.filter,
+            context.apiKey // Stream 4: Pass API Key for expansion
         );
     },
     requiredParams: ['query'],

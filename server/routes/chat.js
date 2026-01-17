@@ -303,10 +303,34 @@ router.post('/history', async (req, res) => {
                 if (knowledgeGaps && knowledgeGaps.size > 0) {
                     user.profile.performanceMetrics.clear();     
                     knowledgeGaps.forEach((score, topic) => {
-                        user.profile.performanceMetrics.set(topic.replace(/\./g, '-'), score);
+                        const safeTopic = topic.replace(/\./g, '-');
+                        user.profile.performanceMetrics.set(safeTopic, score);
+
+                        // Stream 2: Contextual Memory Update
+                        if (!user.profile.studentState) {
+                            user.profile.studentState = { masteredConcepts: [], strugglingConcepts: [], learningStylePreference: "Not Specified" };
+                        }
+
+                        if (score >= 0.8) {
+                            if (!user.profile.studentState.masteredConcepts.includes(topic)) {
+                                user.profile.studentState.masteredConcepts.push(topic);
+                            }
+                            user.profile.studentState.strugglingConcepts = user.profile.studentState.strugglingConcepts.filter(t => t !== topic);
+                        } else if (score < 0.6) {
+                            if (!user.profile.studentState.strugglingConcepts.includes(topic)) {
+                                user.profile.studentState.strugglingConcepts.push(topic);
+                            }
+                            user.profile.studentState.masteredConcepts = user.profile.studentState.masteredConcepts.filter(t => t !== topic);
+                        }
                     });
+
+                    // Sync learning style
+                    if (user.profile.studentState) {
+                        user.profile.studentState.learningStylePreference = user.profile.learningStyle;
+                    }
+
                     await user.save(); 
-                    console.log(`[Chat Route] Updated user performance metrics with ${knowledgeGaps.size} new gaps.`);
+                    console.log(`[Chat Route] Updated user performance metrics & studentState with ${knowledgeGaps.size} topics.`);
 
                     let mostSignificantGap = null;
                     let lowestScore = 1.1;
