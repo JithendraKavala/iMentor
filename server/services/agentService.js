@@ -4,13 +4,15 @@ const {
   createSynthesizerPrompt,
   createAgenticSystemPrompt,
 } = require("../config/promptTemplates.js");
-const { availableTools } = require("./toolRegistry.js");
+const { mcpClient } = require("./toolRegistry.js");
 const {
   createModelContext,
   createAgenticContext,
 } = require("../protocols/contextProtocols.js");
 const geminiService = require("./geminiService.js");
 const ollamaService = require("./ollamaService.js");
+const groqService = require("./groqService.js");
+const anthropicService = require("./anthropicService.js");
 
 function parseToolCall(responseText) {
   try {
@@ -50,13 +52,30 @@ async function processAgenticRequest(
     apiKey,
   } = requestContext;
 
-  const llmService = llmProvider === "ollama" ? ollamaService : geminiService;
-  const llmOptions = {
-    ...(llmProvider === "ollama" && { model: ollamaModel }),
-    apiKey: apiKey,
-    ollamaUrl: ollamaUrl,
+  let llmService;
+  let llmOptions = {
+      apiKey: apiKey,
+      ollamaUrl: ollamaUrl,
   };
 
+  switch (llmProvider) {
+      case 'ollama':
+          llmService = ollamaService;
+          llmOptions.model = ollamaModel;
+          break;
+      case 'groq':
+          llmService = groqService;
+          break;
+      case 'anthropic':
+          llmService = anthropicService;
+          break;
+      case 'gemini':
+      default:
+          llmService = geminiService;
+          break;
+  }
+
+  const availableTools = mcpClient.getTools();
   const modelContext = createModelContext({ availableTools });
   const agenticContext = createAgenticContext({
     systemPrompt: clientSystemPrompt,

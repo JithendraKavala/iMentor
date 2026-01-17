@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 
 const LLMConfigurationSchema = new mongoose.Schema({
   modelId: { type: String, required: true, unique: true, description: "e.g., 'gemini-1.5-pro', 'ollama/qwen2.5:14b-instruct', 'fine-tuned/physics-v1'" },
-  provider: { type: String, required: true, enum: ['gemini', 'ollama', 'openai', 'fine-tuned'] },
+  provider: { type: String, required: true, enum: ['gemini', 'ollama', 'openai', 'fine-tuned', 'groq', 'anthropic'] },
   displayName: { type: String, required: true, description: "e.g., 'Gemini 1.5 Pro', 'Ollama Qwen 2.5'" },
   description: { type: String, description: "Internal notes on the model's strengths." },
   isDefault: { type: Boolean, default: false, description: "Fallback model if no specific model is chosen." },

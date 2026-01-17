@@ -78,7 +78,7 @@ const UserSchema = new mongoose.Schema({
   },
   preferredLlmProvider: {
     type: String,
-    enum: ["gemini", "ollama"],
+    enum: ["gemini", "ollama", "groq", "anthropic"],
     default: "gemini",
   },
   ollamaUrl: {

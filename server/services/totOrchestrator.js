@@ -3,8 +3,19 @@
 const { processAgenticRequest } = require('./agentService');
 const geminiService = require('./geminiService');
 const ollamaService = require('./ollamaService');
-const { availableTools } = require('./toolRegistry');
+const groqService = require('./groqService');
+const anthropicService = require('./anthropicService');
+const { mcpClient } = require('./toolRegistry');
 const { PLANNER_PROMPT_TEMPLATE, EVALUATOR_PROMPT_TEMPLATE, createSynthesizerPrompt, CHAT_MAIN_SYSTEM_PROMPT } = require('../config/promptTemplates');
+
+function getLLMService(provider) {
+    switch (provider) {
+        case 'ollama': return ollamaService;
+        case 'groq': return groqService;
+        case 'anthropic': return anthropicService;
+        case 'gemini': default: return geminiService;
+    }
+}
 
 async function isQueryComplex(query) {
     const isComplex = (query.match(/\?/g) || []).length > 1 || query.split(' ').length > 20;
@@ -15,8 +26,9 @@ async function isQueryComplex(query) {
 async function generatePlans(query, requestContext) {
     console.log('[ToT] Step 2: Planner. Generating plans via LLM...');
     const { llmProvider, isWebSearchEnabled, isAcademicSearchEnabled, documentContextName, ...llmOptions } = requestContext;
-    const llmService = llmProvider === 'ollama' ? ollamaService : geminiService;
+    const llmService = getLLMService(llmProvider);
 
+    const availableTools = mcpClient.getTools();
     const modelContext = require('../protocols/contextProtocols').createModelContext({ availableTools });
     
     let currentModeInstruction = "";
@@ -107,7 +119,7 @@ async function evaluatePlans(plans, query, requestContext) {
     }
 
     const { llmProvider, ...llmOptions } = requestContext;
-    const llmService = llmProvider === 'ollama' ? ollamaService : geminiService;
+    const llmService = getLLMService(llmProvider);
     const plansJsonString = JSON.stringify(plans, null, 2);
 
     const evaluatorPrompt = EVALUATOR_PROMPT_TEMPLATE.replace("{userQuery}", query).replace("{plansJsonString}", plansJsonString);
@@ -156,7 +168,8 @@ async function executePlan(winningPlan, originalQuery, requestContext, streamCal
             const toolName = stepToolCall.tool_name;
             const toolParams = stepToolCall.parameters;
 
-            const tool = availableTools[toolName]; // Access from the availableTools import
+            const availableTools = mcpClient.getTools();
+            const tool = availableTools[toolName];
             if (!tool) {
                 console.error(`[ToT Executor] Planner specified unknown tool: ${toolName}. Falling back to direct answer.`);
                 // Fallback if Planner hallucinated a tool
@@ -196,7 +209,7 @@ async function executePlan(winningPlan, originalQuery, requestContext, streamCal
             
             // Use a simplified direct answer approach, as agentService does for 'forceSimple'
             // Need the LLM Service and options from requestContext
-            const llmService = requestContext.llmProvider === 'ollama' ? ollamaService : geminiService;
+            const llmService = getLLMService(requestContext.llmProvider);
             const llmOptions = { 
                 model: requestContext.ollamaModel, 
                 apiKey: requestContext.apiKey, 
@@ -263,7 +276,7 @@ async function executePlan(winningPlan, originalQuery, requestContext, streamCal
 async function synthesizeFinalAnswer(originalQuery, finalContext, chatHistory, requestContext) {
     console.log('[ToT] Step 5: Synthesizer. Creating final response...');
     const { llmProvider, ...llmOptions } = requestContext;
-    const llmService = llmProvider === 'ollama' ? ollamaService : geminiService;
+    const llmService = getLLMService(llmProvider);
 
     const synthesizerUserQuery = createSynthesizerPrompt(
         originalQuery, finalContext, 'tree_of_thought_synthesis'

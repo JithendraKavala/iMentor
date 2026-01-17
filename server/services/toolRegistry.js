@@ -38,7 +38,8 @@ async function queryAcademicService(query) {
     }
 }
 
-const availableTools = {
+// Internal "Local" Tools Definitions
+const localToolsRegistry = {
   web_search: {
     description: "Searches the internet for real-time, up-to-date information on current events, public figures, or general knowledge.",
     execute: async (params) => {
@@ -88,4 +89,44 @@ const availableTools = {
   }
 };
 
-module.exports = { availableTools };
+class MCPClient {
+    constructor() {
+        this.tools = {};
+        this.servers = [];
+    }
+
+    /**
+     * Registers local tools into the MCP client.
+     */
+    registerLocalTools() {
+        this.tools = { ...localToolsRegistry };
+        console.log(`[MCPClient] Registered ${Object.keys(this.tools).length} local tools.`);
+    }
+
+    /**
+     * Connects to a remote MCP server (Simulated for now).
+     * @param {string} url
+     */
+    async connectServer(url) {
+        console.log(`[MCPClient] Connecting to MCP server at ${url}...`);
+        // TODO: Implement actual MCP protocol handshake
+        // For now, we assume no external tools
+    }
+
+    /**
+     * Returns the list of currently available tools.
+     * @returns {object} Map of tool_name -> tool_definition
+     */
+    getTools() {
+        return this.tools;
+    }
+}
+
+// Initialize the MCP Client singleton
+const mcpClient = new MCPClient();
+mcpClient.registerLocalTools();
+
+module.exports = {
+    mcpClient,
+    availableTools: mcpClient.getTools() // Kept for backward compatibility, but behaves statically if not refreshed
+};
