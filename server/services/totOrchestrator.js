@@ -3,8 +3,19 @@
 const { processAgenticRequest } = require('./agentService');
 const geminiService = require('./geminiService');
 const ollamaService = require('./ollamaService');
-const { availableTools } = require('./toolRegistry');
-const { PLANNER_PROMPT_TEMPLATE, EVALUATOR_PROMPT_TEMPLATE, createSynthesizerPrompt, CHAT_MAIN_SYSTEM_PROMPT } = require('../config/promptTemplates');
+const groqService = require('./groqService');
+const anthropicService = require('./anthropicService');
+const { mcpClient } = require('./toolRegistry');
+const { PLANNER_PROMPT_TEMPLATE, SOCRATIC_PLANNER_PROMPT, EVALUATOR_PROMPT_TEMPLATE, createSynthesizerPrompt, CHAT_MAIN_SYSTEM_PROMPT } = require('../config/promptTemplates');
+
+function getLLMService(provider) {
+    switch (provider) {
+        case 'ollama': return ollamaService;
+        case 'groq': return groqService;
+        case 'anthropic': return anthropicService;
+        case 'gemini': default: return geminiService;
+    }
+}
 
 async function isQueryComplex(query) {
     const isComplex = (query.match(/\?/g) || []).length > 1 || query.split(' ').length > 20;
@@ -15,14 +26,20 @@ async function isQueryComplex(query) {
 async function generatePlans(query, requestContext) {
     console.log('[ToT] Step 2: Planner. Generating plans via LLM...');
     const { llmProvider, isWebSearchEnabled, isAcademicSearchEnabled, documentContextName, ...llmOptions } = requestContext;
-    const llmService = llmProvider === 'ollama' ? ollamaService : geminiService;
+    const llmService = getLLMService(llmProvider);
 
+    const availableTools = mcpClient.getTools();
     const modelContext = require('../protocols/contextProtocols').createModelContext({ availableTools });
     
     let currentModeInstruction = "";
     let enforcedTool = null;
 
-    if (isWebSearchEnabled) {
+    // Stream 2: Socratic Mode check
+    const isSocratic = requestContext.isSocraticMode === true;
+
+    if (isSocratic) {
+        currentModeInstruction = `**SOCRATIC MODE ENABLED**: The user wants to learn, not just get answers. Prioritize plans that ask guiding questions. Use 'direct_answer' (tool_call: null) to interact with the user. Only use search tools if absolutely necessary to check facts for the teacher.`;
+    } else if (isWebSearchEnabled) {
         enforcedTool = "web_search";
         currentModeInstruction = `The user has explicitly enabled Web Search. Therefore, ALL steps in ALL plans MUST use the 'web_search' tool. Do NOT use 'rag_search', 'academic_search', or 'direct_answer' tools. For every step, your tool_call MUST be 'web_search' with the appropriate parameters.`;
     } else if (isAcademicSearchEnabled) {
@@ -42,7 +59,12 @@ async function generatePlans(query, requestContext) {
         `;
     }
 
-    const plannerPrompt = PLANNER_PROMPT_TEMPLATE
+    let plannerPromptTemplate = PLANNER_PROMPT_TEMPLATE;
+    if (isSocratic) {
+        plannerPromptTemplate = SOCRATIC_PLANNER_PROMPT;
+    }
+
+    const plannerPrompt = plannerPromptTemplate
         .replace("{userQuery}", query)
         .replace("{available_tools_json}", JSON.stringify(modelContext.available_tools, null, 2))
         .replace("{current_mode_tool_instruction}", currentModeInstruction);
@@ -107,7 +129,7 @@ async function evaluatePlans(plans, query, requestContext) {
     }
 
     const { llmProvider, ...llmOptions } = requestContext;
-    const llmService = llmProvider === 'ollama' ? ollamaService : geminiService;
+    const llmService = getLLMService(llmProvider);
     const plansJsonString = JSON.stringify(plans, null, 2);
 
     const evaluatorPrompt = EVALUATOR_PROMPT_TEMPLATE.replace("{userQuery}", query).replace("{plansJsonString}", plansJsonString);
@@ -156,7 +178,8 @@ async function executePlan(winningPlan, originalQuery, requestContext, streamCal
             const toolName = stepToolCall.tool_name;
             const toolParams = stepToolCall.parameters;
 
-            const tool = availableTools[toolName]; // Access from the availableTools import
+            const availableTools = mcpClient.getTools();
+            const tool = availableTools[toolName];
             if (!tool) {
                 console.error(`[ToT Executor] Planner specified unknown tool: ${toolName}. Falling back to direct answer.`);
                 // Fallback if Planner hallucinated a tool
@@ -196,7 +219,7 @@ async function executePlan(winningPlan, originalQuery, requestContext, streamCal
             
             // Use a simplified direct answer approach, as agentService does for 'forceSimple'
             // Need the LLM Service and options from requestContext
-            const llmService = requestContext.llmProvider === 'ollama' ? ollamaService : geminiService;
+            const llmService = getLLMService(requestContext.llmProvider);
             const llmOptions = { 
                 model: requestContext.ollamaModel, 
                 apiKey: requestContext.apiKey, 
@@ -263,7 +286,7 @@ async function executePlan(winningPlan, originalQuery, requestContext, streamCal
 async function synthesizeFinalAnswer(originalQuery, finalContext, chatHistory, requestContext) {
     console.log('[ToT] Step 5: Synthesizer. Creating final response...');
     const { llmProvider, ...llmOptions } = requestContext;
-    const llmService = llmProvider === 'ollama' ? ollamaService : geminiService;
+    const llmService = getLLMService(llmProvider);
 
     const synthesizerUserQuery = createSynthesizerPrompt(
         originalQuery, finalContext, 'tree_of_thought_synthesis'

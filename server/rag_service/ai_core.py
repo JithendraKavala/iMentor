@@ -16,6 +16,8 @@ logger = logging.getLogger(__name__)
 # --- Configuration Import ---
 try:
     import config # This should import server/config.py
+    import syllabus_parser # Stream 2: Syllabus Parser
+    import neo4j_handler # Stream 2: Direct Ingestion
 except ImportError as e:
     logger.critical(f"CRITICAL: Failed to import 'config' (expected server/config.py): {e}. ")
     # Depending on how critical config is, you might want to sys.exit(1)
@@ -767,7 +769,8 @@ def process_document_for_qdrant(
     file_path: str, # Could be empty if text_content_override is used
     original_name: str,
     user_id: str,
-    text_content_override: Optional[str] = None # NEW parameter
+    text_content_override: Optional[str] = None, # NEW parameter
+    is_syllabus: bool = False # Stream 2: Syllabus Flag
 ) -> tuple[List[Dict[str, Any]], Optional[str], List[Dict[str, Any]]]:
     """
     Main orchestrator for processing a document or raw text.
@@ -866,6 +869,22 @@ def process_document_for_qdrant(
         doc_metadata['ocr_applied'] = ocr_applied_flag # Update with actual OCR status
         doc_metadata['source_type_actual'] = file_type_from_parser # Capture true source type from URL processing
 
+        # Stream 2: Syllabus Parsing (Interception)
+        syllabus_ingested = False
+        if is_syllabus:
+            logger.info(f"Stream 2: Processing '{original_name}' as SYLLABUS using specialized parser.")
+            try:
+                graph_data = syllabus_parser.parse_syllabus_to_graph(text_for_further_processing)
+                if graph_data:
+                    logger.info(f"Stream 2: Syllabus parsed successfully. Ingesting into Neo4j...")
+                    neo4j_handler.ingest_knowledge_graph(user_id, original_name, graph_data['nodes'], graph_data['edges'])
+                    logger.info(f"Stream 2: Syllabus KG ingestion complete.")
+                    syllabus_ingested = True
+                else:
+                    logger.warning("Stream 2: Syllabus parser returned no data.")
+            except Exception as e:
+                logger.error(f"Stream 2: Error in syllabus parsing/ingestion: {e}")
+
         # 7. Chunk Document
         chunks_with_metadata_for_qdrant_and_kg = chunk_document_into_segments(
             text_for_further_processing,
@@ -876,9 +895,14 @@ def process_document_for_qdrant(
             return empty_qdrant_chunks, raw_text_for_node_analysis, empty_kg_chunks
 
         # Prepare chunks for KG worker (these don't need embeddings yet)
-        chunks_for_kg_worker = copy.deepcopy(chunks_with_metadata_for_qdrant_and_kg) 
-        for chunk in chunks_for_kg_worker:
-            chunk.pop('embedding', None) 
+        if syllabus_ingested:
+             # If we already ingested the syllabus KG, we don't need the worker to do it again.
+             logger.info("Stream 2: Skipping generic KG worker generation since Syllabus KG was ingested.")
+             chunks_for_kg_worker = []
+        else:
+             chunks_for_kg_worker = copy.deepcopy(chunks_with_metadata_for_qdrant_and_kg)
+             for chunk in chunks_for_kg_worker:
+                 chunk.pop('embedding', None)
 
         # 8. Generate Embeddings for Qdrant chunks
         final_chunks_for_qdrant = generate_segment_embeddings(chunks_with_metadata_for_qdrant_and_kg)

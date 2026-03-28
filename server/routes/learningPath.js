@@ -1,10 +1,58 @@
 // server/routes/learningPath.js
 const express = require('express');
 const router = express.Router();
+const axios = require('axios');
 const LearningPath = require('../models/LearningPath');
 const User = require('../models/User'); // <<< THIS IS THE FIX
 const { createLearningPath } = require('../services/learning/curriculumOrchestrator');
 const { auditLog } = require('../utils/logger');
+
+// @route   GET /api/learning/paths/skill-tree/:documentName
+// @desc    Get Syllabus Graph overlaid with student status.
+// @access  Private
+router.get('/skill-tree/:documentName', async (req, res) => {
+    const { documentName } = req.params;
+    const userId = req.user._id;
+
+    try {
+        const user = await User.findById(userId).select('profile.studentState');
+        const studentState = user.profile.studentState || { masteredConcepts: [], strugglingConcepts: [] };
+
+        const pythonServiceUrl = process.env.PYTHON_RAG_SERVICE_URL;
+        if (!pythonServiceUrl) {
+             return res.status(500).json({ message: "Python service not configured." });
+        }
+
+        // Fetch KG from Python Service (Neo4j)
+        const getKgUrl = `${pythonServiceUrl}/kg/${userId}/${encodeURIComponent(documentName)}`;
+        let kgData = { nodes: [], edges: [] };
+
+        try {
+            const pythonResponse = await axios.get(getKgUrl);
+            kgData = pythonResponse.data || { nodes: [], edges: [] };
+        } catch (kgError) {
+            console.warn(`[SkillTree] Failed to fetch KG for ${documentName}. Returning empty/default.`);
+        }
+
+        // Overlay Status
+        const nodesWithStatus = kgData.nodes.map(node => {
+            let status = 'unseen'; // Default: Fog of War / Gray
+            // Simple label matching. Could be improved with vector similarity.
+            if (studentState.masteredConcepts.some(c => c.toLowerCase() === node.label.toLowerCase())) {
+                status = 'mastered'; // Green
+            } else if (studentState.strugglingConcepts.some(c => c.toLowerCase() === node.label.toLowerCase())) {
+                status = 'struggling'; // Red
+            }
+            return { ...node, status };
+        });
+
+        res.json({ nodes: nodesWithStatus, edges: kgData.edges });
+
+    } catch (error) {
+        console.error("[SkillTree] Error:", error);
+        res.status(500).json({ message: "Failed to fetch skill tree." });
+    }
+});
 
 // @route   POST /api/learning/paths/generate
 // @desc    Create a new learning path for the authenticated user based on a goal.

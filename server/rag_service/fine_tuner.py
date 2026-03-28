@@ -16,7 +16,8 @@ logger = logging.getLogger(__name__)
 
 # --- Configuration ---
 # We always start from a fresh, known-good base model for each fine-tuning run.
-BASE_MODEL = "unsloth/llama-3-8b-Instruct-bnb-4bit" 
+# Stream 4: Use a smaller model (SLM) for efficient local routing/fine-tuning.
+BASE_MODEL = "unsloth/Llama-3.2-1B-Instruct"
 # This is the temporary directory where the trained model will be saved before being imported into Ollama.
 TEMP_MODEL_DIR = "/tmp/ai-tutor-model"
 
